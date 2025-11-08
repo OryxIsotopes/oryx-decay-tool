@@ -1,457 +1,578 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Radioactive Decay Activity Calculator</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="color-scheme" content="light dark" />
-  <style>
-    :root {
-      --bg: #0b1220;
-      --card: #0f172a;
-      --text: #e2e8f0;
-      --muted: #94a3b8;
-      --accent: #22d3ee;
-      --ok: #34d399;
-      --warn: #f59e0b;
-      --err: #ef4444;
-      --border: #1f2a44;
-    }
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #f8fafc;
-        --card: #ffffff;
-        --text: #0f172a;
-        --muted: #475569;
-        --accent: #0ea5e9;
-        --ok: #059669;
-        --warn: #b45309;
-        --err: #b91c1c;
-        --border: #e2e8f0;
-      }
-    }
-    html, body { height: 100%; }
-    body {
-      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans",
-      "Apple Color Emoji","Segoe UI Emoji"; background: var(--bg); color: var(--text);
-      display: grid; place-items: start center;
-    }
-    .wrap { width: min(960px, 95vw); margin: 24px auto; }
-    h1 { font-size: clamp(1.25rem, 1.5vw + 1rem, 1.75rem); margin: 0 0 10px; }
-    p.lead { color: var(--muted); margin-top: 0; }
-    .grid {
-      display: grid; gap: 16px;
-      grid-template-columns: repeat(12, 1fr);
-    }
-    .card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px;
-    }
-    .inputs { grid-column: span 12; }
-    .outputs { grid-column: span 12; }
-    @media (min-width: 900px) {
-      .inputs { grid-column: span 7; }
-      .outputs { grid-column: span 5; }
-    }
+"<?xml version="1.0" encoding="UTF-8" ?>
+<?xaml-comp compile="true" ?>
+<ResourceDictionary 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
-    .row { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
-    .row-3 { grid-template-columns: 1fr 1fr 1fr; }
-    .field { display: flex; flex-direction: column; gap: 6px; }
-    label { font-size: 0.9rem; color: var(--muted); }
-    input, select, button, textarea {
-      font: inherit; background: transparent; color: var(--text);
-      border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px;
-    }
-    input[type="number"] { -moz-appearance: textfield; }
-    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+    <Style TargetType="ActivityIndicator">
+        <Setter Property="Color" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}" />
+    </Style>
 
-    .btn {
-      border: 1px solid var(--accent); color: var(--text); background: color-mix(in oklab, var(--accent) 12%, transparent);
-      cursor: pointer; transition: transform .06s ease, filter .15s ease; font-weight: 600;
-    }
-    .btn:hover { filter: brightness(1.05); }
-    .btn:active { transform: translateY(1px); }
-    .btn.secondary { border-color: var(--border); background: transparent; }
+    <Style TargetType="IndicatorView">
+        <Setter Property="IndicatorColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}"/>
+        <Setter Property="SelectedIndicatorColor" Value="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource Gray100}}"/>
+    </Style>
 
-    .stat {
-      border: 1px dashed var(--border); border-radius: 14px; padding: 12px;
-      display: grid; gap: 6px;
-    }
-    .stat .label { color: var(--muted); font-size: 0.9rem; }
-    .stat .value { font-size: 1.25rem; font-variant-numeric: tabular-nums lining-nums; }
-    .stat.ok { border-color: color-mix(in oklab, var(--ok) 40%, var(--border)); }
-    .stat.warn { border-color: color-mix(in oklab, var(--warn) 40%, var(--border)); }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; }
-    .muted { color: var(--muted); }
-    .foot { color: var(--muted); font-size: 0.9rem; }
-    .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-    .chip {
-      border: 1px solid var(--border); border-radius: 999px; padding: 6px 10px; font-size: 0.85rem; color: var(--muted);
-    }
-    .notice { margin-top: 10px; font-size: 0.9rem; }
-    .hr { height: 1px; background: var(--border); margin: 16px 0; }
-    details summary { cursor: pointer; }
-    kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; background: color-mix(in oklab, var(--card) 70%, var(--bg)); }
-    .ref a { color: inherit; text-decoration: underline dotted; }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <header>
-      <h1>Radioactive Decay Activity Calculator</h1>
-      <p class="lead">Enter isotope, calibration time, and reference activity. The calculator updates continuously to show the current activity.</p>
-    </header>
+    <Style TargetType="Border">
+        <Setter Property="Stroke" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray500}}" />
+        <Setter Property="StrokeShape" Value="RoundRectangle 10,10,10,10"/>
+        <Setter Property="StrokeThickness" Value="1"/>
+        <Setter Property="Padding" Value="10" />
+        <Setter Property="Background" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray900}}" />
+        <Setter Property="Shadow">
+            <Setter.Value>
+                <Shadow
+                Brush="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}"
+                Radius="10"
+                Opacity="0.5"
+                Offset="5,5"/>
+            </Setter.Value>
+        </Setter>
+    </Style>
 
-    <div class="grid">
-      <!-- Inputs -->
-      <section class="card inputs">
-        <div class="row">
-          <div class="field">
-            <label for="isotope">Isotope</label>
-            <select id="isotope"></select>
-          </div>
-          <div class="field">
-            <label for="halfLife">Half-life <span class="muted">(minutes)</span></label>
-            <input id="halfLife" type="number" step="0.001" inputmode="decimal" />
-            <small class="muted">Auto-filled from isotope list. You can override it.</small>
-          </div>
-        </div>
+    <Style TargetType="BoxView">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource Gray200}}" />
+    </Style>
+<!--
+    <Style TargetType="ContentPage" ApplyToDerivedTypes="True">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
+    </Style>
+-->
+    <!-- For Grid 
+    <Style TargetType="Grid">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
+    </Style>
+-->
+    <!-- For StackLayout 
+    <Style TargetType="StackLayout">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
+    </Style> -->
 
-        <div class="row">
-          <div class="field">
-            <label for="activity0">Activity at Calibration (<span id="unitLabel">MBq</span>)</label>
-            <input id="activity0" type="number" min="0" step="0.001" placeholder="e.g., 12000" inputmode="decimal" />
-          </div>
-          <div class="field">
-            <label for="unit">Unit</label>
-            <select id="unit">
-              <option>MBq</option>
-              <option>mCi</option>
-            </select>
-          </div>
-        </div>
+    <!-- For VerticalStackLayout 
+    <Style TargetType="VerticalStackLayout">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
+    </Style> -->
 
-        <div class="row">
-          <div class="field">
-            <label for="calTime">Calibration Date &amp; Time <span class="muted">(local)</span></label>
-            <input id="calTime" type="datetime-local" />
-          </div>
-          <div class="field">
-            <label for="nowTime">Current Time <span class="muted">(auto)</span></label>
-            <input id="nowTime" type="datetime-local" disabled />
-          </div>
-        </div>
+    <!-- For HorizontalStackLayout
+    <Style TargetType="HorizontalStackLayout">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
+    </Style> -->
 
-        <div class="row">
-          <div class="field">
-            <button class="btn" id="recalc">Recalculate</button>
-          </div>
-          <div class="field">
-            <button class="btn secondary" id="shareLink">Copy Shareable Link</button>
-          </div>
-        </div>
+    <!-- For ContentView 
+    <Style TargetType="ContentView">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
+    </Style> -->
 
-        <div class="notice muted">
-          URL parameters supported: <span class="mono">iso</span>, <span class="mono">a0</span>, <span class="mono">unit</span>, <span class="mono">cal</span> (e.g., <span class="mono">?iso=F-18&a0=12000&unit=MBq&cal=2025-11-08T09:45</span>).
-          Perfect for QR codes.
-        </div>
-      </section>
+    <!-- For ScrollView 
+    <Style TargetType="ScrollView">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
+    </Style> -->
 
-      <!-- Outputs -->
-      <section class="card outputs">
-        <div class="chips" id="statusChips"></div>
 
-        <div class="stat" id="activityNowBox">
-          <div class="label">Current Activity</div>
-          <div class="value" id="activityNow">—</div>
-          <div class="muted" id="activityNowAlt">—</div>
-        </div>
+    <Style TargetType="Button">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}" />
+        <Setter Property="FontFamily" Value="OpenSansRegular"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="BorderWidth" Value="0"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="14,10"/>
+        <Setter Property="MinimumHeightRequest" Value="44"/>
+        <Setter Property="MinimumWidthRequest" Value="44"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+                            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="PointerOver" />
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-        <div class="row">
-          <div class="stat">
-            <div class="label">Elapsed Time</div>
-            <div class="value" id="elapsed">—</div>
-            <div class="muted" id="elapsedExact">—</div>
-          </div>
-          <div class="stat">
-            <div class="label">Decay Factor</div>
-            <div class="value" id="decayFactor">—</div>
-            <div class="muted">A = A₀ · e<sup>−λt</sup>, λ = ln(2)/T<sub>½</sub></div>
-          </div>
-        </div>
+    <Style TargetType="CheckBox">
+        <Setter Property="Color" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}" />
+        <Setter Property="MinimumHeightRequest" Value="44"/>
+        <Setter Property="MinimumWidthRequest" Value="44"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="Color" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-        <div class="hr"></div>
+    <Style TargetType="DatePicker">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray600}}" />
+        <Setter Property="BackgroundColor" Value="LightGray" />
+        <Setter Property="FontFamily" Value="OpenSansRegular"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="MinimumHeightRequest" Value="44"/>
+        <Setter Property="MinimumWidthRequest" Value="44"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-        <details class="foot">
-          <summary>References</summary>
-          <ul class="ref">
-            <li>Exponential decay law and decay constant relationship explained by NIST. <a href="https://physics.nist.gov/cgi-bin/cuu/Info/half_life.html" target="_blank" rel="noopener">NIST: Half-life & decay constant</a></li>
-            <li>Half-life data (authoritative nuclear structure & decay) available via IAEA LiveChart. <a href="https://www-nds.iaea.org/relnsd/vcharthtml/VChartHTML.html" target="_blank" rel="noopener">IAEA LiveChart</a></li>
-          </ul>
-        </details>
-      </section>
-    </div>
-  </div>
+    <Style TargetType="Editor">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="FontFamily" Value="OpenSansRegular"/>
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}" />
+        <Setter Property="MinimumHeightRequest" Value="44"/>
+        <Setter Property="MinimumWidthRequest" Value="44"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-  <script>
-    // ---------- Half-life dataset (minutes) ----------
-    // Values chosen from widely used references; verify against IAEA LiveChart for your QA release.
-    // You can add more isotopes as needed.
-    const HALF_LIVES_MIN = {
-      "F-18": 109.771,
-      "Tc-99m": 360.0,            // 6.0 h
-      "I-131": 192.5 * 60,        // ~8.02 d
-      "Ga-68": 67.71,
-      "Lu-177": 6.647 * 24 * 60,  // 6.647 d
-      "Y-90": 64.1 * 60,          // 64.1 h
-      "C-11": 20.334,
-      "N-13": 9.97,
-      "O-15": 2.036,
-      "Zr-89": 78.41 * 60,        // 78.41 h
-      "Cu-64": 12.701 * 60        // 12.701 h
-    };
+    <Style TargetType="Entry">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource Black}}" />
+        <Setter Property="BackgroundColor" Value="#EFEFEF" />
+        <Setter Property="FontFamily" Value="OpenSansRegular"/>
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}" />
+        <Setter Property="MinimumHeightRequest" Value="44"/>
+        <Setter Property="MinimumWidthRequest" Value="44"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-    const qs = new URLSearchParams(location.search);
+    <Style TargetType="Frame">
+        <Setter Property="HasShadow" Value="False" />
+        <Setter Property="BorderColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Black}}" />
+    </Style>
 
-    const el = (id) => document.getElementById(id);
-    const isotope = el("isotope");
-    const halfLife = el("halfLife");
-    const activity0 = el("activity0");
-    const unit = el("unit");
-    const unitLabel = el("unitLabel");
-    const calTime = el("calTime");
-    const nowTime = el("nowTime");
-    const recalcBtn = el("recalc");
-    const shareBtn = el("shareLink");
+    <Style TargetType="ImageButton">
+        <Setter Property="Opacity" Value="1" />
+        <Setter Property="BorderColor" Value="Transparent"/>
+        <Setter Property="BorderWidth" Value="0"/>
+        <Setter Property="CornerRadius" Value="0"/>
+        <Setter Property="MinimumHeightRequest" Value="44"/>
+        <Setter Property="MinimumWidthRequest" Value="44"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="Opacity" Value="0.5" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="PointerOver" />
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-    const statusChips = el("statusChips");
-    const activityNow = el("activityNow");
-    const activityNowAlt = el("activityNowAlt");
-    const activityNowBox = el("activityNowBox");
-    const elapsed = el("elapsed");
-    const elapsedExact = el("elapsedExact");
-    const decayFactor = el("decayFactor");
+    <Style TargetType="Label">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="FontFamily" Value="OpenSansRegular" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-    const MBQ_PER_MCI = 37.0;
+    <Style TargetType="Span">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+    </Style>
 
-    // Populate isotope list
-    function populateIsotopes() {
-      isotope.innerHTML = "";
-      const keys = Object.keys(HALF_LIVES_MIN).sort((a,b)=>a.localeCompare(b, undefined, {numeric:true}));
-      for (const key of keys) {
-        const opt = document.createElement("option");
-        opt.value = key; opt.textContent = key;
-        isotope.appendChild(opt);
-      }
-      // Add a "Custom…" option to allow arbitrary isotopes with manual T1/2
-      const custom = document.createElement("option");
-      custom.value = "__custom__";
-      custom.textContent = "Custom…";
-      isotope.appendChild(custom);
-    }
+    <Style TargetType="Label" x:Key="Headline">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource MidnightBlue}, Dark={StaticResource White}}" />
+        <Setter Property="FontSize" Value="32" />
+        <Setter Property="HorizontalOptions" Value="Center" />
+        <Setter Property="HorizontalTextAlignment" Value="Center" />
+    </Style>
 
-    function setDefaults() {
-      // Default isotope
-      const isoParam = (qs.get("iso") || "F-18").toUpperCase().replace(/\s+/g, "").replace(/([^0-9]+)(\d+)/, "$1-$2");
-      const inList = Object.keys(HALF_LIVES_MIN).includes(isoParam);
-      isotope.value = inList ? isoParam : "__custom__";
-      halfLife.value = inList ? HALF_LIVES_MIN[isoParam] : (qs.get("t12min") || "");
+    <Style TargetType="Label" x:Key="SubHeadline">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource MidnightBlue}, Dark={StaticResource White}}" />
+        <Setter Property="FontSize" Value="24" />
+        <Setter Property="HorizontalOptions" Value="Center" />
+        <Setter Property="HorizontalTextAlignment" Value="Center" />
+    </Style>
 
-      // Activity
-      if (qs.has("a0")) activity0.value = qs.get("a0");
-      if (qs.has("unit")) unit.value = (qs.get("unit") === "mCi") ? "mCi" : "MBq";
-      unitLabel.textContent = unit.value;
+    <Style TargetType="ListView">
+        <Setter Property="SeparatorColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray500}}" />
+        <Setter Property="RefreshControlColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray200}}" />
+    </Style>
 
-      // Calibration time
-      const now = new Date();
-      const defaultCal = new Date(now.getTime() - 60 * 60 * 1000); // 1h ago
-      const calStr = qs.get("cal") || defaultCal.toISOString().slice(0,16);
-      calTime.value = normalizeToLocal(calStr);
-    }
+    <Style TargetType="Picker">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray900}}" />
+        <Setter Property="TitleColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray200}}" />
+        <Setter Property="BackgroundColor" Value="LightGray" />
+        <Setter Property="FontFamily" Value="OpenSansRegular"/>
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="MinimumHeightRequest" Value="44"/>
+        <Setter Property="MinimumWidthRequest" Value="44"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                            <Setter Property="TitleColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-    function normalizeToLocal(isoish) {
-      // Accepts 'YYYY-MM-DDTHH:MM' (local) or full ISO; outputs 'YYYY-MM-DDTHH:MM' local
-      try {
-        const d = new Date(isoish);
-        if (Number.isNaN(+d)) return "";
-        const pad = (n) => String(n).padStart(2,"0");
-        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-      } catch { return ""; }
-    }
+    <Style TargetType="ProgressBar">
+        <Setter Property="ProgressColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="ProgressColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-    function chip(text) {
-      const span = document.createElement("span");
-      span.className = "chip"; span.textContent = text;
-      return span;
-    }
+    <Style TargetType="RadioButton">
+        <Setter Property="BackgroundColor" Value="Transparent"/>
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+        <Setter Property="FontFamily" Value="OpenSansRegular"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="MinimumHeightRequest" Value="44"/>
+        <Setter Property="MinimumWidthRequest" Value="44"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-    function fmt(num, digits=3) {
-      if (!isFinite(num)) return "—";
-      if (num === 0) return "0";
-      const abs = Math.abs(num);
-      if (abs >= 1e6 || abs < 1e-3) return num.toExponential(digits);
-      return num.toLocaleString(undefined, { maximumFractionDigits: digits });
-    }
+    <Style TargetType="RefreshView">
+        <Setter Property="RefreshColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray200}}" />
+    </Style>
 
-    function parseLocalDatetime(dtLocalValue) {
-      // Treat input value (YYYY-MM-DDTHH:MM) as local time
-      if (!dtLocalValue) return null;
-      const [date, time] = dtLocalValue.split("T");
-      if (!date || !time) return null;
-      const [y,m,d] = date.split("-").map(Number);
-      const [hh,mm] = time.split(":").map(Number);
-      return new Date(y, (m-1), d, hh, mm, 0, 0);
-    }
+    <Style TargetType="SearchBar">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
+        <Setter Property="PlaceholderColor" Value="{StaticResource Gray500}" />
+        <Setter Property="CancelButtonColor" Value="{StaticResource Gray500}" />
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="FontFamily" Value="OpenSansRegular" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="MinimumHeightRequest" Value="44"/>
+        <Setter Property="MinimumWidthRequest" Value="44"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                            <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-    function minutesBetween(a, b) {
-      // b - a in minutes
-      return (b.getTime() - a.getTime()) / 60000;
-    }
+    <Style TargetType="SearchHandler">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
+        <Setter Property="PlaceholderColor" Value="{StaticResource Gray500}" />
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="FontFamily" Value="OpenSansRegular" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                            <Setter Property="PlaceholderColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-    function decay(a0, tMin, t12min) {
-      // A = A0 * exp(-ln2 * t / T1/2)
-      const ln2 = Math.log(2);
-      return a0 * Math.exp(-ln2 * (tMin / t12min));
-    }
+    <Style TargetType="Shadow">
+        <Setter Property="Radius" Value="15" />
+        <Setter Property="Opacity" Value="0.5" />
+        <Setter Property="Brush" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource White}}" />
+        <Setter Property="Offset" Value="10,10" />
+    </Style>
 
-    function updateUnitLabel() {
-      unitLabel.textContent = unit.value;
-    }
+    <Style TargetType="Slider">
+        <Setter Property="MinimumTrackColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}" />
+        <Setter Property="MaximumTrackColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray600}}" />
+        <Setter Property="ThumbColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="MinimumTrackColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"/>
+                            <Setter Property="MaximumTrackColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"/>
+                            <Setter Property="ThumbColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}"/>
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-    function currentParams() {
-      const iso = isotope.value === "__custom__" ? (qs.get("iso") || "Custom") : isotope.value;
-      const t12 = parseFloat(halfLife.value);
-      const a0 = parseFloat(activity0.value);
-      const un = unit.value;
-      const cal = parseLocalDatetime(calTime.value);
-      return { iso, t12, a0, un, cal };
-    }
+    <Style TargetType="SwipeItem">
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Black}}" />
+    </Style>
 
-    function convertToMBq(value, fromUnit) {
-      return (fromUnit === "mCi") ? value * MBQ_PER_MCI : value;
-    }
-    function convertFromMBq(valueMBq, toUnit) {
-      return (toUnit === "mCi") ? (valueMBq / MBQ_PER_MCI) : valueMBq;
-    }
+    
+    <Style TargetType="Switch">
+        <Setter Property="OnColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}" />
+        <Setter Property="ThumbColor" Value="{StaticResource White}" />
+        
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="OnColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                            <Setter Property="ThumbColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="On">
+                        <VisualState.Setters>
+                            <Setter Property="OnColor" Value="{AppThemeBinding Light={StaticResource Secondary}, Dark={StaticResource Gray200}}" />
+                            <Setter Property="ThumbColor" Value="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource White}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="Off">
+                        <VisualState.Setters>
+                            <Setter Property="ThumbColor" Value="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-    function classifyBox(isPreCalibration) {
-      activityNowBox.classList.remove("ok","warn");
-      activityNowBox.classList.add(isPreCalibration ? "warn" : "ok");
-    }
 
-    function recalcOnce() {
-      // Update "now" field to device time
-      const now = new Date();
-      nowTime.value = normalizeToLocal(now.toISOString().slice(0,16));
 
-      const { iso, t12, a0, un, cal } = currentParams();
+    <Style TargetType="TimePicker">
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
+        <Setter Property="BackgroundColor" Value="Transparent"/>
+        <Setter Property="FontFamily" Value="OpenSansRegular"/>
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="MinimumHeightRequest" Value="44"/>
+        <Setter Property="MinimumWidthRequest" Value="44"/>
+        <Setter Property="Format" Value="hh:mm tt"/>
+        <Setter Property="HorizontalOptions" Value="Fill"/>
+        <Setter Property="VerticalOptions" Value="Start"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-      statusChips.innerHTML = "";
-      if (isotope.value !== "__custom__") statusChips.appendChild(chip(`Isotope: ${iso}`));
-      if (isFinite(t12)) statusChips.appendChild(chip(`T½ = ${fmt(t12,3)} min`));
-      if (isFinite(a0))  statusChips.appendChild(chip(`A₀ = ${fmt(a0,3)} ${un}`));
+    <Style TargetType="TimePicker" x:Key="SmallTimePickerStyle">
+        <Setter Property="Format" Value="HH:mm" />
+        <!-- 24-hour format -->
+        <Setter Property="FontSize" Value="12" />
+        <!-- Smaller font -->
+        <Setter Property="HeightRequest" Value="32" />
+        <Setter Property="WidthRequest" Value="90" />
+        <Setter Property="HorizontalOptions" Value="Center" />
+        <Setter Property="VerticalOptions" Value="Center" />
+        <Setter Property="FontFamily" Value="OpenSansRegular" />
+        <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="CommonStates">
+                    <VisualState x:Name="Normal" />
+                    <VisualState x:Name="Disabled">
+                        <VisualState.Setters>
+                            <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray300}, Dark={StaticResource Gray600}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
 
-      if (!isFinite(t12) || t12 <= 0) {
-        activityNow.textContent = "Enter a valid half-life";
-        activityNowAlt.textContent = "—";
-        elapsed.textContent = "—";
-        elapsedExact.textContent = "—";
-        decayFactor.textContent = "—";
-        classifyBox(false);
-        return;
-      }
-      if (!isFinite(a0) || a0 < 0 || !cal) {
-        activityNow.textContent = "Enter valid A₀ and calibration time";
-        activityNowAlt.textContent = "—";
-        elapsed.textContent = "—";
-        elapsedExact.textContent = "—";
-        decayFactor.textContent = "—";
-        classifyBox(false);
-        return;
-      }
+    <!--
+    <Style TargetType="TitleBar">
+        <Setter Property="MinimumHeightRequest" Value="32"/>
+        <Setter Property="VisualStateManager.VisualStateGroups">
+            <VisualStateGroupList>
+                <VisualStateGroup x:Name="TitleActiveStates">
+                    <VisualState x:Name="TitleBarTitleActive">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="Transparent" />
+                            <Setter Property="ForegroundColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource White}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                    <VisualState x:Name="TitleBarTitleInactive">
+                        <VisualState.Setters>
+                            <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Black}}" />
+                            <Setter Property="ForegroundColor" Value="{AppThemeBinding Light={StaticResource Gray400}, Dark={StaticResource Gray500}}" />
+                        </VisualState.Setters>
+                    </VisualState>
+                </VisualStateGroup>
+            </VisualStateGroupList>
+        </Setter>
+    </Style>
+    -->
 
-      const dtMin = minutesBetween(cal, now);
-      const isPre = dtMin < 0; // now before calibration reference (growth towards calibration)
-      const tAbs = Math.abs(dtMin);
+    <Style TargetType="Page" ApplyToDerivedTypes="True">
+        <Setter Property="Padding" Value="0"/>
+        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
+    </Style>
 
-      const a0_MBq = convertToMBq(a0, un);
-      const aNow_MBq = decay(a0_MBq, dtMin, t12); // sign works: negative dt -> exponent positive (activity > A0)
+    <Style TargetType="Shell" ApplyToDerivedTypes="True">
+        <Setter Property="Shell.BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
+        <Setter Property="Shell.ForegroundColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}" />
+        <Setter Property="Shell.TitleColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}" />
+        <Setter Property="Shell.DisabledColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}" />
+        <Setter Property="Shell.UnselectedColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray200}}" />
+        <Setter Property="Shell.NavBarHasShadow" Value="False" />
+        <Setter Property="Shell.TabBarBackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Black}}" />
+        <Setter Property="Shell.TabBarForegroundColor" Value="{AppThemeBinding Light={StaticResource Magenta}, Dark={StaticResource White}}" />
+        <Setter Property="Shell.TabBarTitleColor" Value="{AppThemeBinding Light={StaticResource Magenta}, Dark={StaticResource White}}" />
+        <Setter Property="Shell.TabBarUnselectedColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray200}}" />
+    </Style>
 
-      // Display
-      const aDisp = convertFromMBq(aNow_MBq, un);
-      const aAlt = (un === "MBq") ? (aNow_MBq / MBQ_PER_MCI) : (aNow_MBq * MBQ_PER_MCI);
-      activityNow.textContent = `${fmt(aDisp, 3)} ${un}`;
-      activityNowAlt.textContent = (un === "MBq")
-        ? `${fmt(aAlt, 3)} mCi`
-        : `${fmt(aAlt, 3)} MBq`;
+    <Style TargetType="NavigationPage">
+        <Setter Property="BarBackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
+        <Setter Property="BarTextColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource White}}" />
+        <Setter Property="IconColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource White}}" />
+    </Style>
 
-      const days = Math.floor(tAbs / (60*24));
-      const hours = Math.floor((tAbs - days*60*24) / 60);
-      const mins = Math.floor(tAbs - days*60*24 - hours*60);
+    <Style TargetType="TabbedPage">
+        <Setter Property="BarBackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray950}}" />
+        <Setter Property="BarTextColor" Value="{AppThemeBinding Light={StaticResource Magenta}, Dark={StaticResource White}}" />
+        <Setter Property="UnselectedTabColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}" />
+        <Setter Property="SelectedTabColor" Value="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource Gray200}}" />
+    </Style>
+ 
+</ResourceDictionary> "
 
-      const signWord = isPre ? "until calibration" : "since calibration";
-      const parts = [];
-      if (days) parts.push(`${days} d`);
-      if (hours) parts.push(`${hours} h`);
-      parts.push(`${mins} min`);
-      elapsed.textContent = `${parts.join(" ")} ${signWord}`;
-      elapsedExact.textContent = `${fmt(dtMin, 3)} minutes (signed)`;
+Deep think the perfect color modification for Light and Dark them to fit my software style. Major changes in Styles and minor in colors 
 
-      const lambda = Math.log(2)/t12;
-      const factor = Math.exp(-lambda * dtMin);
-      decayFactor.textContent = `× ${fmt(factor, 6)}`;
+"<?xml version="1.0" encoding="UTF-8" ?>
+<?xaml-comp compile="true" ?>
+<ResourceDictionary 
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml">
 
-      classifyBox(isPre);
-    }
+    <!-- Note: For Android please see also Platforms\Android\Resources\values\colors.xml -->
 
-    function attachHandlers() {
-      isotope.addEventListener("change", () => {
-        if (isotope.value === "__custom__") {
-          // keep user-entered half-life
-        } else {
-          halfLife.value = HALF_LIVES_MIN[isotope.value];
-        }
-        recalcOnce();
-      });
-      halfLife.addEventListener("input", recalcOnce);
-      activity0.addEventListener("input", recalcOnce);
-      unit.addEventListener("change", () => { updateUnitLabel(); recalcOnce(); });
-      calTime.addEventListener("change", recalcOnce);
-      recalcBtn.addEventListener("click", recalcOnce);
+    <Color x:Key="Primary">#ff7e00</Color>
+    <Color x:Key="PrimaryDark">#c17d00</Color>
+    <Color x:Key="PrimaryDarkText">#242424</Color>
+    <Color x:Key="Secondary">#ffffa500</Color>
+    <Color x:Key="SecondaryDarkText">#9880e5</Color>
+    <Color x:Key="Tertiary">#2B0B98</Color>
 
-      shareBtn.addEventListener("click", async () => {
-        const { iso, t12, a0, un, cal } = currentParams();
-        const params = new URLSearchParams();
-        if (isotope.value === "__custom__") {
-          params.set("iso", "Custom");
-          if (isFinite(t12)) params.set("t12min", String(t12));
-        } else {
-          params.set("iso", iso);
-        }
-        if (isFinite(a0)) params.set("a0", String(a0));
-        params.set("unit", un);
-        if (cal) params.set("cal", cal.toISOString().slice(0,16));
+    <Color x:Key="White">White</Color>
+    <Color x:Key="Black">Black</Color>
+    <Color x:Key="Magenta">#D600AA</Color>
+    <Color x:Key="MidnightBlue">#190649</Color>
+    <Color x:Key="OffBlack">#1f1f1f</Color>
 
-        const url = `${location.origin}${location.pathname}?${params.toString()}`;
+    <Color x:Key="Gray100">#E1E1E1</Color>
+    <Color x:Key="Gray200">#C8C8C8</Color>
+    <Color x:Key="Gray300">#ACACAC</Color>
+    <Color x:Key="Gray400">#919191</Color>
+    <Color x:Key="Gray500">#6E6E6E</Color>
+    <Color x:Key="Gray600">#404040</Color>
+    <Color x:Key="Gray900">#212121</Color>
+    <Color x:Key="Gray950">#141414</Color>
 
-        try {
-          await navigator.clipboard.writeText(url);
-          shareBtn.textContent = "Link Copied ✓";
-          setTimeout(()=> shareBtn.textContent="Copy Shareable Link", 1400);
-        } catch {
-          // Fallback
-          prompt("Copy this link:", url);
-        }
-      });
+    <SolidColorBrush x:Key="PrimaryBrush" Color="{StaticResource Primary}"/>
+    <SolidColorBrush x:Key="SecondaryBrush" Color="{StaticResource Secondary}"/>
+    <SolidColorBrush x:Key="TertiaryBrush" Color="{StaticResource Tertiary}"/>
+    <SolidColorBrush x:Key="WhiteBrush" Color="{StaticResource White}"/>
+    <SolidColorBrush x:Key="BlackBrush" Color="{StaticResource Black}"/>
 
-      // Live update every 1s
-      setInterval(recalcOnce, 1000);
-    }
-
-    // Boot
-    populateIsotopes();
-    setDefaults();
-    attachHandlers();
-    recalcOnce();
-  </script>
-</body>
-</html>
+    <SolidColorBrush x:Key="Gray100Brush" Color="{StaticResource Gray100}"/>
+    <SolidColorBrush x:Key="Gray200Brush" Color="{StaticResource Gray200}"/>
+    <SolidColorBrush x:Key="Gray300Brush" Color="{StaticResource Gray300}"/>
+    <SolidColorBrush x:Key="Gray400Brush" Color="{StaticResource Gray400}"/>
+    <SolidColorBrush x:Key="Gray500Brush" Color="{StaticResource Gray500}"/>
+    <SolidColorBrush x:Key="Gray600Brush" Color="{StaticResource Gray600}"/>
+    <SolidColorBrush x:Key="Gray900Brush" Color="{StaticResource Gray900}"/>
+    <SolidColorBrush x:Key="Gray950Brush" Color="{StaticResource Gray950}"/>
+</ResourceDictionary>"
