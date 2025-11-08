@@ -61,7 +61,7 @@
           grid-column: span 12;
       }
       .dose {
-          grid-column: span 7;
+          grid-column: span 12;
       }
     }
 
@@ -77,6 +77,12 @@
           gap: 12px;
           grid-template-rows: 1fr;
           grid-template-columns: 1fr 1fr;
+      }
+      .column-3 {
+          display: grid;
+          gap: 12px;
+          grid-template-rows: 1fr;
+          grid-template-columns: 1fr 1fr 1fr;
       }
     .row-3 { grid-template-columns: 1fr 1fr 1fr; }
     .field { display: flex; flex-direction: column; gap: 6px; }
@@ -245,8 +251,7 @@
                 </details>
             </section>
 
-
-
+            <!-- Dose -->
             <section class="card dose">
 
                 <div class="row">
@@ -272,7 +277,69 @@
                     </div>
                 </div>
             </section>
-          
+
+            <!-- Plan -->
+            <section class="card info" id="patientPlan">
+                <h1>Patient Doses Schedule</h1>
+
+                <div class="column-3">
+                    <div class="field">
+                        <label for="intervalMin">Interval between patients (minutes)</label>
+                        <input id="intervalMin" type="number" min="1" step="1" value="20">
+                        <small class="muted">Default 20 min; editing updates times.</small>
+                    </div>
+
+                   
+                        <div class="field">
+                            <label for="planStart">Plan start time (HH:MM)</label>
+                            <input id="planStart" type="time">
+                            <small class="muted">Default = Calibration time</small>
+                        </div>
+                  
+
+                    <div class="field">
+                        <label>&nbsp;</label>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn" id="seedPatients">Seed from count</button>
+                            <button class="btn secondary" id="addPatient">Add patient</button>
+                        </div>
+                        <small class="muted">“Seed from count” uses the number in <span class="mono">doses</span> URL param (if present).</small>
+                    </div>
+                </div>
+
+                <div class="hr"></div>
+
+                <div class="field">
+                    <label>Patients</label>
+                    <div class="stat" style="padding:0;">
+                        <table style="width:100%;border-collapse:separate;border-spacing:0 8px;padding:12px;">
+                            <thead>
+                                <tr class="muted">
+                                    <th style="text-align:left;">🔒</th>
+                                    <th style="text-align:left;">Injection time (HH:MM)</th>
+                                    <th style="text-align:left;">Dose (<span id="perPatientDoseUnit">mCi</span>)</th>
+                                    <th style="text-align:left;">Required volume (mL)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="patientsBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="hr"></div>
+
+                <div class="field">
+                    <label>Totals</label>
+                    <div class="stat">
+                        <div class="value" id="totalUsedVol">Total Used: —</div>
+                        <div class="muted" id="remainingVol">Remaining: —</div>
+                    </div>
+                </div>
+
+            </section>
+
+
+
+
         </div>
 
   </div>
@@ -329,6 +396,16 @@
       const decayFactor = el("decayFactor");
       const doseUnit = el("doseUnit");
 
+      const patientsBody = el("patientsBody");
+      const intervalMinEl = el("intervalMin");
+      const addPatientBtn = el("addPatient");
+      const seedPatientsBtn = el("seedPatients");
+      const perPatientDoseUnit = el("perPatientDoseUnit");
+
+      // Each patient: { timeHHMM, dose, locked?: boolean, lockedMl?: string }
+
+      let patients = [];
+
 
 
     const MBQ_PER_MCI = 37.0;
@@ -375,7 +452,12 @@ if (qs.has("vol")) el("volLabel").textContent = qs.get("vol");
       const now = new Date();
       const defaultCal = new Date(now.getTime() - 60 * 60 * 1000); // 1h ago
       const calStr = qs.get("cal") || defaultCal.toISOString().slice(0,16);
-      calTime.value = normalizeToLocal(calStr);
+        calTime.value = normalizeToLocal(calStr);
+
+        // default plan start time = calibration time HH:MM
+        const calObj = parseLocalDatetime(calStr);
+        el("planStart").value = `${String(calObj.getHours()).padStart(2, "0")}:${String(calObj.getMinutes()).padStart(2, "0")}`;
+
     }
 
 function normalizeToLocal(v) {
@@ -556,6 +638,78 @@ function normalizeToLocal(v) {
           }
 
 
+          // --- Patient rows live calc ---
+          (() => {
+              const volURL = parseFloat(qs.get("vol"));
+              const canCalc = isFinite(volURL) && volURL > 0;
+
+
+
+              // Skip if no patient rows
+              if (!patients.length) return;
+
+              const calLocal = parseLocalDatetime(calTime.value);
+
+              patients.forEach((p, i) => {
+                  const cell = document.getElementById(`volCell-${i}`);
+                  if (!cell) return;
+  
+                  if (patients[i]?.locked) {
+                      freezeRowIfLocked(i);
+                      return;
+                  }
+                  if (!canCalc) {
+                      cell.textContent = "—";
+                      return;
+                  }
+
+                  // activity at the *patient injection time*
+                  const injDate = dateWithHHMM(calLocal, p.timeHHMM);
+                  const dtMinPatient = minutesBetween(calLocal, injDate); // signed
+                  const aAtInj_MBq = decay(a0_MBq, dtMinPatient, t12);    // MBq in vial at inj time
+
+                  const concAtInj_MBq_per_mL = aAtInj_MBq / volURL;       // MBq/mL at inj time
+
+                  // convert patient’s entered dose to MBq using the per-patient dose unit selector
+                  const doseEntered = parseFloat(p.dose);
+                  if (!isFinite(doseEntered) || doseEntered <= 0 || !isFinite(concAtInj_MBq_per_mL) || concAtInj_MBq_per_mL <= 0) {
+                      cell.textContent = "—";
+                      return;
+                  }
+
+                  const doseMBq = (doseUnit.value === "mCi") ? doseEntered * MBQ_PER_MCI : doseEntered;
+                  const mlNeeded = doseMBq / concAtInj_MBq_per_mL;
+
+                  cell.textContent = fmt(mlNeeded, 3) + " mL";
+                  });
+              // ensure locked rows keep frozen values
+              patients.forEach((_, i) => freezeRowIfLocked(i));
+
+          })();
+
+          // --- Total volume / Remaining summary ---
+          (() => {
+              const volURL = parseFloat(qs.get("vol"));
+              if (!patients.length || !isFinite(volURL) || volURL <= 0) {
+                  el("totalUsedVol").textContent = "Total Used: —";
+                  el("remainingVol").textContent = "Remaining: —";
+                  return;
+              }
+
+              let sum = 0;
+              patients.forEach((p, i) => {
+                  const cell = document.getElementById(`volCell-${i}`);
+                  if (!cell) return;
+                  const v = parseFloat(cell.textContent);
+                  if (isFinite(v)) sum += v;
+              });
+
+              const remaining = volURL - sum;
+
+              el("totalUsedVol").textContent = `Total Used: ${fmt(sum, 3)} mL`;
+              el("remainingVol").textContent = `Remaining: ${fmt(remaining, 3)} mL`;
+          })();
+
           // Elapsed Time display
           const days = Math.floor(tAbs / (60 * 24));
           const hours = Math.floor((tAbs - days * 60 * 24) / 60);
@@ -591,6 +745,120 @@ function toLocalISOWithOffset(date) {
 }
 
 
+      function pad2(n) { return String(n).padStart(2, "0"); }
+
+      function addMinutes(date, mins) {
+          return new Date(date.getFullYear(), date.getMonth(), date.getDate(),
+              date.getHours(), date.getMinutes() + mins, 0, 0);
+      }
+
+      function dateWithHHMM(baseDate, hhmm) {
+          const [h, m] = hhmm.split(":").map(v => parseInt(v, 10));
+          return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), h || 0, m || 0, 0, 0);
+      }
+
+      function hhmmFromDate(d) {
+          return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+      }
+
+      function respaceRespectingLocks() {
+          // Re-space ONLY unlocked rows; keep locked rows fixed in time.
+          const start = planStartDate();
+          const step = parseInt(intervalMinEl.value, 10) || 20;
+
+          // Cursor starts at plan start. As we walk in index order:
+          // - If row is locked: move cursor to (lockedTime + step)
+          // - If row is unlocked: set its time to cursor, advance cursor by step
+          let cursor = new Date(start.getTime());
+
+          for (let i = 0; i < patients.length; i++) {
+              const p = patients[i];
+              if (p.locked) {
+                  // honor the locked time and advance the cursor after it
+                  const lockedDate = dateWithHHMM(start, p.timeHHMM);
+                  cursor = addMinutes(lockedDate, step);
+              } else {
+                  p.timeHHMM = hhmmFromDate(cursor);
+                  cursor = addMinutes(cursor, step);
+              }
+          }
+      }
+
+      function freezeRowIfLocked(i) {
+          // If row i is locked, keep its displayed ML exactly as stored
+          const p = patients[i];
+          const cell = document.getElementById(`volCell-${i}`);
+          if (!p || !cell) return;
+          if (p.locked) {
+              // Show frozen value if we have it; otherwise keep current text
+              cell.textContent = (typeof p.lockedMl === "string" && p.lockedMl.length)
+                  ? p.lockedMl
+                  : cell.textContent;
+          }
+      }
+
+
+      function planStartDate() {
+          const cal = parseLocalDatetime(calTime.value);
+          const ps = el("planStart").value;
+          if (!ps) return cal;
+          return dateWithHHMM(cal, ps);
+      }
+
+
+      function renderPatients() {
+          perPatientDoseUnit.textContent = doseUnit.value;
+
+          patientsBody.innerHTML = "";
+          patients.forEach((p, i) => {
+              const locked = !!p.locked;
+              const tr = document.createElement("tr");
+
+              tr.innerHTML = `
+      <td style="white-space:nowrap;">
+        ${i + 1}
+        <button class="btn secondary" data-action="toggle-lock" data-idx="${i}" style="margin-left:8px;padding:4px 8px;">
+          ${locked ? "🔒 Unlock" : "🔓 Lock"}
+        </button>
+      </td>
+      <td>
+        <input type="time" value="${p.timeHHMM}" data-idx="${i}" data-field="time" ${locked ? "disabled" : ""}/>
+      </td>
+      <td>
+        <input type="number" min="0" step="0.001"
+               value="${isFinite(p.dose) ? p.dose : ""}"
+               data-idx="${i}" data-field="dose" style="max-width:140px;" ${locked ? "disabled" : ""}/>
+        <span class="muted">${doseUnit.value}</span>
+      </td>
+      <td>
+        <span id="volCell-${i}">—</span>
+        ${locked ? `<span class="chip" style="margin-left:8px;">Locked</span>` : ""}
+      </td>
+    `;
+              patientsBody.appendChild(tr);
+          });
+      }
+
+
+      function seedFromCount() {
+          const countFromUrl = parseInt(qs.get("doses"), 10);
+          const n = Number.isInteger(countFromUrl) && countFromUrl > 0 ? countFromUrl : 1;
+          const defaultDose = parseFloat(targetDose.value) || 0;
+
+          // Keep all locked rows; drop all unlocked rows, then refill unlocked until length >= n
+          const lockedRows = patients.filter(p => p.locked);
+          patients = [...lockedRows];
+
+          while (patients.length < n) {
+              patients.push({ timeHHMM: hhmmFromDate(planStartDate()), dose: defaultDose, locked: false, lockedMl: "" });
+          }
+          // If patients.length > n because too many locked rows, we keep them (never delete locked).
+
+          respaceRespectingLocks();
+          renderPatients();
+      }
+
+
     function attachHandlers() {
       isotope.addEventListener("change", () => {
         if (isotope.value === "__custom__") {
@@ -609,6 +877,95 @@ function toLocalISOWithOffset(date) {
         unit.addEventListener("change", () => { updateUnitLabel(); recalcOnce(); });
 
         doseUnit.addEventListener("change", recalcOnce);
+
+        intervalMinEl.addEventListener("input", () => {
+            if (!patients.length) return;
+            respaceRespectingLocks();
+            renderPatients();
+            recalcOnce();
+
+        });
+
+        addPatientBtn.addEventListener("click", () => {
+            const defaultDose = parseFloat(targetDose.value) || 0;
+            patients.push({ timeHHMM: hhmmFromDate(planStartDate()), dose: defaultDose, locked: false, lockedMl: "" });
+            respaceRespectingLocks();
+            renderPatients();
+            recalcOnce();
+        });
+
+        seedPatientsBtn.addEventListener("click", () => {
+            seedFromCount();
+            recalcOnce();
+        });
+
+        el("planStart").addEventListener("change", () => {
+            if (!patients.length) return;
+            respaceRespectingLocks();
+            renderPatients();
+            recalcOnce();
+
+        });
+
+        // delegate edits from table
+        // Block edits to locked rows (already disabled, but guard anyway)
+        patientsBody.addEventListener("input", (e) => {
+            const t = e.target;
+            const idx = parseInt(t.getAttribute("data-idx"), 10);
+            const field = t.getAttribute("data-field");
+            if (!Number.isInteger(idx) || !field) return;
+            if (patients[idx]?.locked) return; // ignore edits for locked rows
+
+            if (field === "time") {
+                patients[idx].timeHHMM = t.value;
+            }
+            if (field === "dose") {
+                patients[idx].dose = parseFloat(t.value) || 0;
+            }
+
+            recalcOnce();
+        });
+
+
+        // Handle lock/unlock button
+        patientsBody.addEventListener("click", (e) => {
+            const btn = e.target.closest('button[data-action="toggle-lock"]');
+            if (!btn) return;
+            const idx = parseInt(btn.getAttribute("data-idx"), 10);
+            if (!Number.isInteger(idx) || !patients[idx]) return;
+
+            const p = patients[idx];
+            const cell = document.getElementById(`volCell-${idx}`);
+
+            if (!p.locked) {
+                // Going to LOCK: snapshot current displayed mL (if any)
+                p.locked = true;
+                p.lockedMl = cell ? cell.textContent : "";
+            } else {
+                // Going to UNLOCK: allow recomputation
+                p.locked = false;
+                p.lockedMl = "";
+            }
+
+            renderPatients();   // updates button label + disables inputs
+            recalcOnce();       // recompute; freezeRowIfLocked will pin mL
+        });
+
+
+        targetDose.addEventListener("input", () => {
+            // new rows added later will use this default; existing rows stay as edited
+            recalcOnce();
+        });
+        doseUnit.addEventListener("change", () => {
+            perPatientDoseUnit.textContent = doseUnit.value;
+        });
+
+
+        // keep header dose unit in sync with the selector you already added
+        doseUnit.addEventListener("change", () => {
+            renderPatients();
+            recalcOnce();
+        });
 
 
 shareBtn.addEventListener("click", async () => {
@@ -654,7 +1011,11 @@ shareBtn.addEventListener("click", async () => {
 
     // Boot
     populateIsotopes();
-    setDefaults();
+      setDefaults();
+      // After setDefaults();
+      seedFromCount();
+      renderPatients();
+
     attachHandlers();
     recalcOnce();
   </script>
