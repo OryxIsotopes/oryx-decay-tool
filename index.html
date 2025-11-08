@@ -67,30 +67,35 @@
 
       @media (max-width: 600px) {
 
-          h1 {
-              font-size: 1.15rem;
+          #patientsBody tr {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              row-gap: 6px;
+              padding: 6px 0;
           }
 
-          .column, .column-2, .column-3 {
-              grid-template-columns: 1fr !important;
-          }
-
-          table thead th {
-              font-size: 0.78rem;
-          }
-
-          table td input {
+          #patientsBody td:nth-child(1),
+          #patientsBody td:nth-child(2),
+          #patientsBody td:nth-child(3),
+          #patientsBody td:nth-child(4) {
+              display: flex;
+              align-items: center;
               font-size: 0.85rem;
-              padding: 6px 8px;
           }
 
-          input, select, button {
-              padding: 8px 10px;
+          #patientsBody td:nth-child(1) {
+              grid-column: span 2;
+              justify-content: space-between;
           }
 
-          .card {
-              padding: 12px;
-              border-radius: 14px;
+          #patientsBody td:nth-child(2),
+          #patientsBody td:nth-child(3),
+          #patientsBody td:nth-child(4) {
+              grid-column: span 2; /* stack under each other */
+          }
+
+          table thead {
+              display: none;
           }
       }
 
