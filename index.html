@@ -48,12 +48,36 @@
     }
     .inputs { grid-column: span 12; }
     .outputs { grid-column: span 12; }
+      .info {
+          grid-column: span 12;
+      }
+      .dose {
+          grid-column: span 12;
+      }
     @media (min-width: 900px) {
       .inputs { grid-column: span 7; }
       .outputs { grid-column: span 5; }
+      .info {
+          grid-column: span 12;
+      }
+      .dose {
+          grid-column: span 7;
+      }
     }
 
-    .row { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+      .row { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+      .column {
+          display: grid;
+          gap: 12px;
+          grid-template-rows: 1fr;
+          grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+      }
+      .column-2 {
+          display: grid;
+          gap: 12px;
+          grid-template-rows: 1fr;
+          grid-template-columns: 1fr 1fr;
+      }
     .row-3 { grid-template-columns: 1fr 1fr 1fr; }
     .field { display: flex; flex-direction: column; gap: 6px; }
     label { font-size: 0.9rem; color: var(--muted); }
@@ -95,102 +119,165 @@
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <h1>Radioactive Decay Activity Calculator</h1>
-      <p class="lead">Enter isotope, calibration time, and reference activity. The calculator updates continuously to show the current activity.</p>
-    </header>
+    <div class="wrap">
+        <header>
+            <h1>Radioactive Decay Activity Calculator</h1>
+            <p class="lead">Enter isotope, calibration time, and reference activity. The calculator updates continuously to show the current activity.</p>
+        </header>
 
-    <div class="grid">
-      <!-- Inputs -->
-      <section class="card inputs">
-        <div class="row">
-          <div class="field">
-            <label for="isotope">Isotope</label>
-            <select id="isotope"></select>
-          </div>
-          <div class="field">
-            <label for="halfLife">Half-life <span class="muted">(minutes)</span></label>
-            <input id="halfLife" type="number" step="0.001" inputmode="decimal" />
-            <small class="muted">Auto-filled from isotope list. You can override it.</small>
-          </div>
+        <div class="grid">
+
+            <!-- Info -->
+            <section class="card info">
+                <h1>Shipment / Batch Info</h1>
+
+                <div class="column">
+
+                    <div class="field">
+                        <label>Customer</label>
+                        <div id="custLabel" class="muted"></div>
+                    </div>
+                    <div class="field">
+                        <label>Doses</label>
+                        <div id="dosesLabel" class="muted"></div>
+                    </div>
+                    <div class="field">
+                        <label>Volume (mL)</label>
+                        <div id="volLabel" class="muted"></div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- Inputs -->
+            <section class="card inputs">
+                <div class="row">
+                    <div class="field">
+                        <label for="isotope">Isotope</label>
+                        <select id="isotope"></select>
+                    </div>
+                    <div class="field">
+                        <label for="halfLife">Half-life <span class="muted">(minutes)</span></label>
+                        <input id="halfLife" type="number" step="0.001" inputmode="decimal" />
+                        <small class="muted">Auto-filled from isotope list. You can override it.</small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <label for="activity0">Activity at Calibration (<span id="unitLabel">MBq</span>)</label>
+                        <input id="activity0" type="number" min="0" step="0.001" placeholder="e.g., 12000" inputmode="decimal" />
+                    </div>
+                    <div class="field">
+                        <label for="unit">Unit</label>
+                        <select id="unit">
+                            <option>MBq</option>
+                            <option>mCi</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <label for="calTime">Calibration Date &amp; Time <span class="muted">(local)</span></label>
+                        <input id="calTime" type="datetime-local" />
+                    </div>
+                    <div class="field">
+                        <label for="nowTime">Current Time <span class="muted">(auto)</span></label>
+                        <input id="nowTime" type="datetime-local" disabled />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <button class="btn" id="recalc">Recalculate</button>
+                    </div>
+                    <div class="field">
+                        <button class="btn secondary" id="shareLink">Copy Shareable Link</button>
+                    </div>
+                </div>
+
+                <div class="notice muted">
+                    URL parameters supported: <span class="mono">iso</span>, <span class="mono">a0</span>, <span class="mono">unit</span>, <span class="mono">cal</span> (e.g., <span class="mono">?iso=F-18&a0=12000&unit=MBq&cal=2025-11-08T09:45</span>).
+                    Perfect for QR codes.
+                </div>
+            </section>
+
+
+
+
+            <!-- Outputs -->
+            <section class="card outputs">
+                <div class="chips" id="statusChips"></div>
+                <div class="column-2">
+                    <div class="stat" id="activityNowBox">
+                        <div class="label">Current Activity</div>
+                        <div class="value" id="activityNow">—</div>
+                        <div class="muted" id="activityNowAlt">—</div>
+                    </div>
+                    <div class="stat" id="concentrationBox">
+                        <div class="label">Current Concentration</div>
+                        <div class="value" id="concentrationNow">—</div>
+                        <div class="muted" id="concentrationNowAlt">—</div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="stat">
+                        <div class="label">Elapsed Time</div>
+                        <div class="value" id="elapsed">—</div>
+                        <div class="muted" id="elapsedExact">—</div>
+                    </div>
+                    <div class="stat">
+                        <div class="label">Decay Factor</div>
+                        <div class="value" id="decayFactor">—</div>
+                        <div class="muted">A = A₀ · e<sup>−λt</sup>, λ = ln(2)/T<sub>½</sub></div>
+                    </div>
+                </div>
+
+                <div class="hr"></div>
+
+                <details class="foot">
+                    <summary>References</summary>
+                    <ul class="ref">
+                        <li>Exponential decay law and decay constant relationship explained by NIST. <a href="https://physics.nist.gov/cgi-bin/cuu/Info/half_life.html" target="_blank" rel="noopener">NIST: Half-life & decay constant</a></li>
+                        <li>Half-life data (authoritative nuclear structure & decay) available via IAEA LiveChart. <a href="https://www-nds.iaea.org/relnsd/vcharthtml/VChartHTML.html" target="_blank" rel="noopener">IAEA LiveChart</a></li>
+                    </ul>
+                </details>
+            </section>
+
+
+
+            <section class="card dose">
+
+                <div class="row">
+                    <div class="field">
+                        <label for="targetDose">Desired Dose</label>
+                        <div style="display:flex; gap:6px;">
+                            <input id="targetDose" type="number" min="0" step="0.001" placeholder="e.g., 370" inputmode="decimal" style="flex:1;">
+                            <select id="doseUnit">
+                                <option>mCi</option>
+                                <option>MBq</option>
+
+                            </select>
+                        </div>
+                        <small class="muted">Dose unit independent from vial unit.</small>
+
+                    </div>
+                    <div class="field">
+                        <label>Required Volume Now</label>
+                        <div class="stat">
+                            <div class="value" id="requiredVolume">—</div>
+                            <div class="muted" id="requiredVolumeNote">—</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+          
         </div>
 
-        <div class="row">
-          <div class="field">
-            <label for="activity0">Activity at Calibration (<span id="unitLabel">MBq</span>)</label>
-            <input id="activity0" type="number" min="0" step="0.001" placeholder="e.g., 12000" inputmode="decimal" />
-          </div>
-          <div class="field">
-            <label for="unit">Unit</label>
-            <select id="unit">
-              <option>MBq</option>
-              <option>mCi</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="field">
-            <label for="calTime">Calibration Date &amp; Time <span class="muted">(local)</span></label>
-            <input id="calTime" type="datetime-local" />
-          </div>
-          <div class="field">
-            <label for="nowTime">Current Time <span class="muted">(auto)</span></label>
-            <input id="nowTime" type="datetime-local" disabled />
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="field">
-            <button class="btn" id="recalc">Recalculate</button>
-          </div>
-          <div class="field">
-            <button class="btn secondary" id="shareLink">Copy Shareable Link</button>
-          </div>
-        </div>
-
-        <div class="notice muted">
-          URL parameters supported: <span class="mono">iso</span>, <span class="mono">a0</span>, <span class="mono">unit</span>, <span class="mono">cal</span> (e.g., <span class="mono">?iso=F-18&a0=12000&unit=MBq&cal=2025-11-08T09:45</span>).
-          Perfect for QR codes.
-        </div>
-      </section>
-
-      <!-- Outputs -->
-      <section class="card outputs">
-        <div class="chips" id="statusChips"></div>
-
-        <div class="stat" id="activityNowBox">
-          <div class="label">Current Activity</div>
-          <div class="value" id="activityNow">—</div>
-          <div class="muted" id="activityNowAlt">—</div>
-        </div>
-
-        <div class="row">
-          <div class="stat">
-            <div class="label">Elapsed Time</div>
-            <div class="value" id="elapsed">—</div>
-            <div class="muted" id="elapsedExact">—</div>
-          </div>
-          <div class="stat">
-            <div class="label">Decay Factor</div>
-            <div class="value" id="decayFactor">—</div>
-            <div class="muted">A = A₀ · e<sup>−λt</sup>, λ = ln(2)/T<sub>½</sub></div>
-          </div>
-        </div>
-
-        <div class="hr"></div>
-
-        <details class="foot">
-          <summary>References</summary>
-          <ul class="ref">
-            <li>Exponential decay law and decay constant relationship explained by NIST. <a href="https://physics.nist.gov/cgi-bin/cuu/Info/half_life.html" target="_blank" rel="noopener">NIST: Half-life & decay constant</a></li>
-            <li>Half-life data (authoritative nuclear structure & decay) available via IAEA LiveChart. <a href="https://www-nds.iaea.org/relnsd/vcharthtml/VChartHTML.html" target="_blank" rel="noopener">IAEA LiveChart</a></li>
-          </ul>
-        </details>
-      </section>
-    </div>
   </div>
+
+
 
   <script>
     // ---------- Half-life dataset (minutes) ----------
@@ -225,11 +312,24 @@
 
     const statusChips = el("statusChips");
     const activityNow = el("activityNow");
-    const activityNowAlt = el("activityNowAlt");
-    const activityNowBox = el("activityNowBox");
+      const activityNowAlt = el("activityNowAlt");
+      const activityNowBox = el("activityNowBox");
+      const concentrationNow = el("concentrationNow");
+      const concentrationNowAlt = el("concentrationNowAlt");
+      const concentrationNowBox = el("concentrationNowBox");
+
+      const targetDose = el("targetDose");
+      const doseUnitLabel = el("doseUnitLabel");
+      const requiredVolume = el("requiredVolume");
+      const requiredVolumeNote = el("requiredVolumeNote");
+
+
     const elapsed = el("elapsed");
     const elapsedExact = el("elapsedExact");
-    const decayFactor = el("decayFactor");
+      const decayFactor = el("decayFactor");
+      const doseUnit = el("doseUnit");
+
+
 
     const MBQ_PER_MCI = 37.0;
 
@@ -260,10 +360,15 @@ if (HALF_LIVES_MIN[isoParam]) {
     if (qs.has("t12min")) halfLife.value = qs.get("t12min");
 }
 
+if (qs.has("cust")) el("custLabel").textContent = qs.get("cust");
+if (qs.has("doses")) el("dosesLabel").textContent = qs.get("doses");
+if (qs.has("vol")) el("volLabel").textContent = qs.get("vol");
 
       // Activity
       if (qs.has("a0")) activity0.value = qs.get("a0");
-      if (qs.has("unit")) unit.value = (qs.get("unit") === "mCi") ? "mCi" : "MBq";
+        if (qs.has("unit")) unit.value = (qs.get("unit") === "mCi") ? "mCi" : "MBq";
+        if (qs.has("dose")) targetDose.value = qs.get("dose");
+
       unitLabel.textContent = unit.value;
 
       // Calibration time
@@ -279,6 +384,7 @@ function normalizeToLocal(v) {
   const pad=(n)=>String(n).padStart(2,"0");
   return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+
 
     function chip(text) {
       const span = document.createElement("span");
@@ -315,8 +421,21 @@ function normalizeToLocal(v) {
       return a0 * Math.exp(-ln2 * (tMin / t12min));
     }
 
-    function updateUnitLabel() {
-      unitLabel.textContent = unit.value;
+      function updateUnitLabel() {
+          // convert target dose value automaically
+          let dose = parseFloat(targetDose.value);
+          if (isFinite(dose)) {
+              if (unit.value === "mCi") {
+                  // convert MBq → mCi
+                  targetDose.value = (dose / MBQ_PER_MCI).toString();
+              } else {
+                  // convert mCi → MBq
+                  targetDose.value = (dose * MBQ_PER_MCI).toString();
+              }
+          }
+        unitLabel.textContent = unit.value;
+        doseUnitLabel.textContent = unit.value;
+
     }
 
     function currentParams() {
@@ -340,71 +459,122 @@ function normalizeToLocal(v) {
       activityNowBox.classList.add(isPreCalibration ? "warn" : "ok");
     }
 
-    function recalcOnce() {
-      // Update "now" field to device time
-      const now = new Date();
-      nowTime.value = normalizeToLocal(now);
+      function recalcOnce() {
+          // Update "now" field to device time
+          const now = new Date();
+          nowTime.value = normalizeToLocal(now);
+
+          const { iso, t12, a0, un, cal } = currentParams();
+
+          statusChips.innerHTML = "";
+          if (isotope.value !== "__custom__") statusChips.appendChild(chip(`Isotope: ${iso}`));
+          if (isFinite(t12)) statusChips.appendChild(chip(`T½ = ${fmt(t12, 3)} min`));
+          if (isFinite(a0)) statusChips.appendChild(chip(`A₀ = ${fmt(a0, 3)} ${un}`));
+
+          if (!isFinite(t12) || t12 <= 0) {
+              activityNow.textContent = "Enter a valid half-life";
+              activityNowAlt.textContent = "—";
+              elapsed.textContent = "—";
+              elapsedExact.textContent = "—";
+              decayFactor.textContent = "—";
+              classifyBox(false);
+              return;
+          }
+          if (!isFinite(a0) || a0 < 0 || !cal) {
+              activityNow.textContent = "Enter valid A₀ and calibration time";
+              activityNowAlt.textContent = "—";
+              elapsed.textContent = "—";
+              elapsedExact.textContent = "—";
+              decayFactor.textContent = "—";
+              classifyBox(false);
+              return;
+          }
+
+          const dtMin = minutesBetween(cal, now);
+          const isPre = dtMin < 0;
+          const tAbs = Math.abs(dtMin);
+
+          const a0_MBq = convertToMBq(a0, un);
+          const aNow_MBq = decay(a0_MBq, dtMin, t12);
+
+          // Display Activity
+          const aDisp = convertFromMBq(aNow_MBq, un);
+          const aAlt = (un === "MBq") ? (aNow_MBq / MBQ_PER_MCI) : (aNow_MBq * MBQ_PER_MCI);
+          activityNow.textContent = `${fmt(aDisp, 3)} ${un}`;
+          activityNowAlt.textContent = (un === "MBq")
+              ? `${fmt(aAlt, 3)} mCi`
+              : `${fmt(aAlt, 3)} MBq`;
+
+          // ---- NEW: Concentration ----
+          let vol = parseFloat(qs.get("vol"));
+          let concMBqperML = NaN;
+          let concMCiperML = NaN;
+          if (isFinite(vol) && vol > 0) {
+
+              // always work in MBq internally
+              concMBqperML = aNow_MBq / vol;
+              concMCiperML = concMBqperML / MBQ_PER_MCI;
 
 
-      const { iso, t12, a0, un, cal } = currentParams();
+              if (un === "MBq") {
+                  concentrationNow.textContent = `${fmt(concMBqperML, 3)} MBq/mL`;
+                  concentrationNowAlt.textContent = `${fmt(concMCiperML, 3)} mCi/mL`;
+              } else {
+                  concentrationNow.textContent = `${fmt(concMCiperML, 3)} mCi/mL`;
+                  concentrationNowAlt.textContent = `${fmt(concMBqperML, 3)} MBq/mL`;
+              }
 
-      statusChips.innerHTML = "";
-      if (isotope.value !== "__custom__") statusChips.appendChild(chip(`Isotope: ${iso}`));
-      if (isFinite(t12)) statusChips.appendChild(chip(`T½ = ${fmt(t12,3)} min`));
-      if (isFinite(a0))  statusChips.appendChild(chip(`A₀ = ${fmt(a0,3)} ${un}`));
+          } else {
+              concentrationNow.textContent = "—";
+              concentrationNowAlt.textContent = "—";
+          }
 
-      if (!isFinite(t12) || t12 <= 0) {
-        activityNow.textContent = "Enter a valid half-life";
-        activityNowAlt.textContent = "—";
-        elapsed.textContent = "—";
-        elapsedExact.textContent = "—";
-        decayFactor.textContent = "—";
-        classifyBox(false);
-        return;
+          // ---- Dose Withdrawal (Required Volume Now) ----
+          // Desired dose can be in independent unit (MBq or mCi)
+          const desiredDose = parseFloat(targetDose.value);
+
+          if (isFinite(desiredDose) && desiredDose > 0 && isFinite(vol) && vol > 0) {
+
+              // convert desired dose to MBq always internal reference
+              let doseMBq = (doseUnit.value === "mCi")
+                  ? desiredDose * MBQ_PER_MCI
+                  : desiredDose;
+
+              // concentration always MBq/mL internal
+              if (isFinite(concMBqperML) && concMBqperML > 0) {
+                  const mlNeeded = doseMBq / concMBqperML; // mL required NOW
+                  requiredVolume.textContent = `${fmt(mlNeeded, 3)} mL`;
+                  requiredVolumeNote.textContent = `Based on ${fmt(concMBqperML, 3)} MBq/mL`;
+              } else {
+                  requiredVolume.textContent = "—";
+                  requiredVolumeNote.textContent = "Set volume (vol) to enable concentration.";
+              }
+
+          } else {
+              requiredVolume.textContent = "—";
+              requiredVolumeNote.textContent = "Enter desired dose to calculate withdrawal volume.";
+          }
+
+
+          // Elapsed Time display
+          const days = Math.floor(tAbs / (60 * 24));
+          const hours = Math.floor((tAbs - days * 60 * 24) / 60);
+          const mins = Math.floor(tAbs - days * 60 * 24 - hours * 60);
+
+          const signWord = isPre ? "until calibration" : "since calibration";
+          const parts = [];
+          if (days) parts.push(`${days} d`);
+          if (hours) parts.push(`${hours} h`);
+          parts.push(`${mins} min`);
+          elapsed.textContent = `${parts.join(" ")} ${signWord}`;
+          elapsedExact.textContent = `${fmt(dtMin, 3)} minutes (signed)`;
+
+          const lambda = Math.log(2) / t12;
+          const factor = Math.exp(-lambda * dtMin);
+          decayFactor.textContent = `× ${fmt(factor, 6)}`;
+
+          classifyBox(isPre);
       }
-      if (!isFinite(a0) || a0 < 0 || !cal) {
-        activityNow.textContent = "Enter valid A₀ and calibration time";
-        activityNowAlt.textContent = "—";
-        elapsed.textContent = "—";
-        elapsedExact.textContent = "—";
-        decayFactor.textContent = "—";
-        classifyBox(false);
-        return;
-      }
-
-      const dtMin = minutesBetween(cal, now);
-      const isPre = dtMin < 0; // now before calibration reference (growth towards calibration)
-      const tAbs = Math.abs(dtMin);
-
-      const a0_MBq = convertToMBq(a0, un);
-      const aNow_MBq = decay(a0_MBq, dtMin, t12); // sign works: negative dt -> exponent positive (activity > A0)
-
-      // Display
-      const aDisp = convertFromMBq(aNow_MBq, un);
-      const aAlt = (un === "MBq") ? (aNow_MBq / MBQ_PER_MCI) : (aNow_MBq * MBQ_PER_MCI);
-      activityNow.textContent = `${fmt(aDisp, 3)} ${un}`;
-      activityNowAlt.textContent = (un === "MBq")
-        ? `${fmt(aAlt, 3)} mCi`
-        : `${fmt(aAlt, 3)} MBq`;
-
-      const days = Math.floor(tAbs / (60*24));
-      const hours = Math.floor((tAbs - days*60*24) / 60);
-      const mins = Math.floor(tAbs - days*60*24 - hours*60);
-
-      const signWord = isPre ? "until calibration" : "since calibration";
-      const parts = [];
-      if (days) parts.push(`${days} d`);
-      if (hours) parts.push(`${hours} h`);
-      parts.push(`${mins} min`);
-      elapsed.textContent = `${parts.join(" ")} ${signWord}`;
-      elapsedExact.textContent = `${fmt(dtMin, 3)} minutes (signed)`;
-
-      const lambda = Math.log(2)/t12;
-      const factor = Math.exp(-lambda * dtMin);
-      decayFactor.textContent = `× ${fmt(factor, 6)}`;
-
-      classifyBox(isPre);
-    }
 
 function toLocalISOWithOffset(date) {
   const tzo = -date.getTimezoneOffset();
@@ -434,7 +604,12 @@ function toLocalISOWithOffset(date) {
       activity0.addEventListener("input", recalcOnce);
       unit.addEventListener("change", () => { updateUnitLabel(); recalcOnce(); });
       calTime.addEventListener("change", recalcOnce);
-      recalcBtn.addEventListener("click", recalcOnce);
+        recalcBtn.addEventListener("click", recalcOnce);
+        targetDose.addEventListener("input", recalcOnce);
+        unit.addEventListener("change", () => { updateUnitLabel(); recalcOnce(); });
+
+        doseUnit.addEventListener("change", recalcOnce);
+
 
 shareBtn.addEventListener("click", async () => {
   const { iso, t12, a0, un, cal } = currentParams();
@@ -450,6 +625,13 @@ shareBtn.addEventListener("click", async () => {
 
   if (cal) params.set("cal", toLocalISOWithOffset(cal));
 
+  // preserve shipment metadata
+  if (qs.has("cust")) params.set("cust", qs.get("cust"));
+  if (qs.has("doses")) params.set("doses", qs.get("doses"));
+    if (qs.has("vol")) params.set("vol", qs.get("vol"));
+    if (targetDose.value && isFinite(parseFloat(targetDose.value))) {
+        params.set("dose", targetDose.value);
+    }
 
 
 
@@ -478,4 +660,3 @@ shareBtn.addEventListener("click", async () => {
   </script>
 </body>
 </html>
-
