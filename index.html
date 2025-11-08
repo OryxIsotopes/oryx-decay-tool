@@ -36,7 +36,7 @@
       "Apple Color Emoji","Segoe UI Emoji"; background: var(--bg); color: var(--text);
       display: grid; place-items: start center;
     }
-    .wrap { width: min(960px, 95vw); margin: 24px auto; }
+    .wrap { width: min(760px, 94vw); margin: 14px auto; }
     h1 { font-size: clamp(1.25rem, 1.5vw + 1rem, 1.75rem); margin: 0 0 10px; }
     p.lead { color: var(--muted); margin-top: 0; }
     .grid {
@@ -64,6 +64,35 @@
           grid-column: span 12;
       }
     }
+
+      @media (max-width: 600px) {
+
+          h1 {
+              font-size: 1.15rem;
+          }
+
+          .column, .column-2, .column-3 {
+              grid-template-columns: 1fr !important;
+          }
+
+          table thead th {
+              font-size: 0.78rem;
+          }
+
+          table td input {
+              font-size: 0.85rem;
+              padding: 6px 8px;
+          }
+
+          input, select, button {
+              padding: 8px 10px;
+          }
+
+          .card {
+              padding: 12px;
+              border-radius: 14px;
+          }
+      }
 
       .row { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
       .column {
