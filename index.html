@@ -458,7 +458,7 @@
                         <table style="width:100%;border-collapse:separate;border-spacing:0 8px;padding:12px;">
                             <thead>
                                 <tr class="muted">
-                                    <th style="text-align:left;">🔒</th>
+                                    <th style="text-align:center;">🔒</th>
                                     <th style="text-align:left;">Injection time (HH:MM)</th>
                                     <th style="text-align:left;">Dose (<span id="perPatientDoseUnit">mCi</span>)</th>
                                     <th style="text-align:left;">Required volume (mL)</th>
@@ -961,7 +961,7 @@ function toLocalISOWithOffset(date) {
       <td style="white-space:nowrap;">
         ${i + 1}
         <button class="btn secondary" data-action="toggle-lock" data-idx="${i}" style="margin-left:8px;padding:4px 8px;">
-          ${locked ? "🔒 Unlock" : "🔓 Lock"}
+          ${locked ? "🔒" : "🔓"}
         </button>
       </td>
       <td>
