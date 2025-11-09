@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>Radioactive Decay Activity Calculator</title>
+    <title>Oryx Isotopes Radiopharmaceuticals Activity Decay Calculator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <style>
@@ -137,6 +137,19 @@
             }
         }
 
+        .logo {
+            width: clamp(140px, 30vw, 260px);
+            height: auto;
+            margin-bottom: 12px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
+            transition: 0.3s transform ease;
+        }
+
+            .logo:hover {
+                transform: scale(1.03);
+            }
+
+
         /* layout utilities */
         .row {
             display: grid;
@@ -269,8 +282,13 @@
 </head>
 <body>
     <div class="wrap">
-        <header>
-            <h1>Radioactive Decay Activity Calculator</h1>
+        <header style="text-align:center;">
+            <a href="https://www.oryxisotopes.com" target="_blank" rel="noopener" class="logo-link">
+                <img src="ORYX-LOGO-FINAL-CUT-ai.png"
+                     alt="Oryx Isotopes Logo"
+                     class="logo" />
+            </a>
+            <h1>Oryx Isotopes Radiopharmaceuticals Activity Decay Calculator</h1>
             <p class="lead">Enter isotope, calibration time, and reference activity. The calculator updates continuously to show the current activity.</p>
         </header>
 
@@ -278,7 +296,7 @@
 
             <!-- Info -->
             <section class="card info">
-                <h1>Shipment / Batch Info</h1>
+                <h1 id="batchLabel">Shipment / Batch Info</h1>
 
                 <div class="column">
 
@@ -293,6 +311,14 @@
                     <div class="field">
                         <label>Volume (mL)</label>
                         <div id="volLabel" class="muted"></div>
+                    </div>
+                    <div class="field">
+                        <label>Expiry Date &amp; Time</label>
+                        <div id="expLabel" class="muted"></div>
+                    </div>
+                    <div class="field">
+                        <label>Remaining Time</label>
+                        <div id="remainingLabel" class="muted"></div>
                     </div>
                 </div>
 
@@ -346,10 +372,10 @@
                     </div>
                 </div>
 
-                <div class="notice muted">
+              <!--  <div class="notice muted">
                     URL parameters supported: <span class="mono">iso</span>, <span class="mono">a0</span>, <span class="mono">unit</span>, <span class="mono">cal</span> (e.g., <span class="mono">?iso=F-18&a0=12000&unit=MBq&cal=2025-11-08T09:45</span>).
                     Perfect for QR codes.
-                </div>
+                </div>  --> 
             </section>
 
 
@@ -394,9 +420,11 @@
                 </details>
             </section>
 
-            <!-- Dose -->
-            <section class="card dose">
+        
 
+            <!-- Plan -->
+            <section class="card info" id="patientPlan">
+                <h1>Patient Doses Schedule</h1>
                 <div class="row">
                     <div class="field">
                         <label for="targetDose">Desired Dose</label>
@@ -419,12 +447,6 @@
                         </div>
                     </div>
                 </div>
-            </section>
-
-            <!-- Plan -->
-            <section class="card info" id="patientPlan">
-                <h1>Patient Doses Schedule</h1>
-
                 <div class="row">
                     <div class="field">
                         <label for="intervalMin">Interval between patients (minutes)</label>
@@ -432,13 +454,13 @@
                         <small class="muted">Default 20 min; editing updates times.</small>
                     </div>
 
-                   
-                        <div class="field">
-                            <label for="planStart">Plan start time (HH:MM)</label>
-                            <input id="planStart" type="time">
-                            <small class="muted">Default = Calibration time</small>
-                        </div>
-                  
+
+                    <div class="field">
+                        <label for="planStart">Plan start time (HH:MM)</label>
+                        <input id="planStart" type="time">
+                        <small class="muted">Default = Calibration time</small>
+                    </div>
+
 
                     <div class="field">
                         <label>&nbsp;</label>
@@ -446,7 +468,7 @@
                             <button class="btn" id="seedPatients">Seed from count</button>
                             <button class="btn secondary" id="addPatient">Add patient</button>
                         </div>
-                        <small class="muted">“Seed from count” uses the number in <span class="mono">doses</span> URL param (if present).</small>
+                        
                     </div>
                 </div>
 
@@ -583,6 +605,44 @@ if (HALF_LIVES_MIN[isoParam]) {
 if (qs.has("cust")) el("custLabel").textContent = qs.get("cust");
 if (qs.has("doses")) el("dosesLabel").textContent = qs.get("doses");
 if (qs.has("vol")) el("volLabel").textContent = qs.get("vol");
+        if (qs.has("batch")) el("batchLabel").textContent = qs.get("batch");
+
+        if (qs.has("exp")) {
+            const expStr = qs.get("exp");
+            const expDate = new Date(expStr);
+
+            if (!isNaN(expDate)) {
+                const pad = (n) => String(n).padStart(2, "0");
+                const formatted = `${pad(expDate.getDate())}/${pad(expDate.getMonth() + 1)}/${expDate.getFullYear()} ${pad(expDate.getHours())}:${pad(expDate.getMinutes())}`;
+                el("expLabel").textContent = formatted;
+
+                // Update remaining time dynamically
+                const updateRemaining = () => {
+                    const now = new Date();
+                    const diffMs = expDate - now;
+                    const diffMin = Math.floor(diffMs / 60000);
+                    const absMin = Math.abs(diffMin);
+                    const hours = Math.floor(absMin / 60);
+                    const mins = absMin % 60;
+
+                    if (diffMs > 0) {
+                        el("remainingLabel").textContent = `${hours}h ${mins}m remaining`;
+                        el("remainingLabel").style.color = "var(--ok)";
+                    } else {
+                        el("remainingLabel").textContent = `Expired ${hours}h ${mins}m ago`;
+                        el("remainingLabel").style.color = "var(--err)";
+                    }
+                };
+
+                updateRemaining();
+                setInterval(updateRemaining, 60000);
+            } else {
+                el("expLabel").textContent = expStr;
+                el("remainingLabel").textContent = "—";
+            }
+        }
+
+
 
       // Activity
       if (qs.has("a0")) activity0.value = qs.get("a0");
@@ -725,10 +785,10 @@ function normalizeToLocal(v) {
           // Display Activity
           const aDisp = convertFromMBq(aNow_MBq, un);
           const aAlt = (un === "MBq") ? (aNow_MBq / MBQ_PER_MCI) : (aNow_MBq * MBQ_PER_MCI);
-          activityNow.textContent = `${fmt(aDisp, 3)} ${un}`;
+          activityNow.textContent = `${fmt(aDisp, 2)} ${un}`;
           activityNowAlt.textContent = (un === "MBq")
-              ? `${fmt(aAlt, 3)} mCi`
-              : `${fmt(aAlt, 3)} MBq`;
+              ? `${fmt(aAlt, 2)} mCi`
+              : `${fmt(aAlt, 2)} MBq`;
 
           // ---- NEW: Concentration ----
           let vol = parseFloat(qs.get("vol"));
@@ -742,11 +802,11 @@ function normalizeToLocal(v) {
 
 
               if (un === "MBq") {
-                  concentrationNow.textContent = `${fmt(concMBqperML, 3)} MBq/mL`;
-                  concentrationNowAlt.textContent = `${fmt(concMCiperML, 3)} mCi/mL`;
+                  concentrationNow.textContent = `${fmt(concMBqperML, 1)} MBq/mL`;
+                  concentrationNowAlt.textContent = `${fmt(concMCiperML, 1)} mCi/mL`;
               } else {
-                  concentrationNow.textContent = `${fmt(concMCiperML, 3)} mCi/mL`;
-                  concentrationNowAlt.textContent = `${fmt(concMBqperML, 3)} MBq/mL`;
+                  concentrationNow.textContent = `${fmt(concMCiperML, 1)} mCi/mL`;
+                  concentrationNowAlt.textContent = `${fmt(concMBqperML, 1)} MBq/mL`;
               }
 
           } else {
@@ -768,8 +828,8 @@ function normalizeToLocal(v) {
               // concentration always MBq/mL internal
               if (isFinite(concMBqperML) && concMBqperML > 0) {
                   const mlNeeded = doseMBq / concMBqperML; // mL required NOW
-                  requiredVolume.textContent = `${fmt(mlNeeded, 3)} mL`;
-                  requiredVolumeNote.textContent = `Based on ${fmt(concMBqperML, 3)} MBq/mL`;
+                  requiredVolume.textContent = `${fmt(mlNeeded, 1)} mL`;
+                  requiredVolumeNote.textContent = `Based on ${fmt(concMBqperML, 1)} MBq/mL`;
               } else {
                   requiredVolume.textContent = "—";
                   requiredVolumeNote.textContent = "Set volume (vol) to enable concentration.";
@@ -823,7 +883,7 @@ function normalizeToLocal(v) {
                   const doseMBq = (doseUnit.value === "mCi") ? doseEntered * MBQ_PER_MCI : doseEntered;
                   const mlNeeded = doseMBq / concAtInj_MBq_per_mL;
 
-                  cell.textContent = fmt(mlNeeded, 3) + " mL";
+                  cell.textContent = fmt(mlNeeded, 1) + " mL";
                   });
               // ensure locked rows keep frozen values
               patients.forEach((_, i) => freezeRowIfLocked(i));
@@ -849,8 +909,8 @@ function normalizeToLocal(v) {
 
               const remaining = volURL - sum;
 
-              el("totalUsedVol").textContent = `Total Used: ${fmt(sum, 3)} mL`;
-              el("remainingVol").textContent = `Remaining: ${fmt(remaining, 3)} mL`;
+              el("totalUsedVol").textContent = `Total Used: ${fmt(sum, 1)} mL`;
+              el("remainingVol").textContent = `Remaining: ${fmt(remaining, 1)} mL`;
           })();
 
           // Elapsed Time display
@@ -864,11 +924,11 @@ function normalizeToLocal(v) {
           if (hours) parts.push(`${hours} h`);
           parts.push(`${mins} min`);
           elapsed.textContent = `${parts.join(" ")} ${signWord}`;
-          elapsedExact.textContent = `${fmt(dtMin, 3)} minutes (signed)`;
+          elapsedExact.textContent = `${fmt(dtMin, 1)} minutes (signed)`;
 
           const lambda = Math.log(2) / t12;
           const factor = Math.exp(-lambda * dtMin);
-          decayFactor.textContent = `× ${fmt(factor, 6)}`;
+          decayFactor.textContent = `× ${fmt(factor, 4)}`;
 
           classifyBox(isPre);
       }
@@ -1111,40 +1171,44 @@ function toLocalISOWithOffset(date) {
         });
 
 
-shareBtn.addEventListener("click", async () => {
-  const { iso, t12, a0, un, cal } = currentParams();
-  const params = new URLSearchParams();
+        shareBtn.addEventListener("click", async () => {
+            const { iso, t12, a0, un, cal } = currentParams();
+            const params = new URLSearchParams();
 
-  params.set("iso", iso);
-  if (isotope.value === "__custom__" && isFinite(t12)) {
-    params.set("t12min", String(t12));
-  }
+            // Core decay parameters
+            params.set("iso", iso);
+            if (isotope.value === "__custom__" && isFinite(t12)) {
+                params.set("t12min", String(t12));
+            }
 
-  if (isFinite(a0)) params.set("a0", String(a0));
-  params.set("unit", un);
+            if (isFinite(a0)) params.set("a0", String(a0));
+            params.set("unit", un);
 
-  if (cal) params.set("cal", toLocalISOWithOffset(cal));
+            // Calibration date (ISO 8601 local time with offset)
+            if (cal) params.set("cal", toLocalISOWithOffset(cal));
 
-  // preserve shipment metadata
-  if (qs.has("cust")) params.set("cust", qs.get("cust"));
-  if (qs.has("doses")) params.set("doses", qs.get("doses"));
-    if (qs.has("vol")) params.set("vol", qs.get("vol"));
-    if (targetDose.value && isFinite(parseFloat(targetDose.value))) {
-        params.set("dose", targetDose.value);
-    }
+            // --- Shipment / batch metadata ---
+            if (qs.has("cust")) params.set("cust", qs.get("cust"));
+            if (qs.has("doses")) params.set("doses", qs.get("doses"));
+            if (qs.has("vol")) params.set("vol", qs.get("vol"));
+            if (qs.has("batch")) params.set("batch", qs.get("batch"));
+            if (qs.has("exp")) params.set("exp", qs.get("exp")); // expiry from QR
+            if (targetDose.value && isFinite(parseFloat(targetDose.value))) {
+                params.set("dose", targetDose.value);
+            }
 
+            // --- Build final link ---
+            const url = `${location.origin}${location.pathname}?${params.toString()}`;
 
-
-  const url = `${location.origin}${location.pathname}?${params.toString()}`;
-
-  try {
-    await navigator.clipboard.writeText(url);
-    shareBtn.textContent = "Link Copied ✓";
-    setTimeout(()=> shareBtn.textContent="Copy Shareable Link", 1400);
-  } catch {
-    prompt("Copy this link:", url);
-  }
-});
+            // --- Copy link to clipboard or show fallback ---
+            try {
+                await navigator.clipboard.writeText(url);
+                shareBtn.textContent = "Link Copied ✓";
+                setTimeout(() => (shareBtn.textContent = "Copy Shareable Link"), 1400);
+            } catch {
+                prompt("Copy this link:", url);
+            }
+        });
 
 
 
