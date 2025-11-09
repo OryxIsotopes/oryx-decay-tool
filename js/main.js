@@ -57,12 +57,12 @@ function setDefaults() {
         const diffMs = expDate - now;
         const diffMin = Math.floor(diffMs / 60000);
         const diffHr = (diffMin / 60).toFixed(2);
-        console.log("📅 Expiry raw string:", expStr);
-        console.log("🕓 Parsed expDate (local):", expDate.toString());
-        console.log("🕐 Current time:", now.toString());
-        console.log("⏳ Difference (ms):", diffMs);
-        console.log("⏱ Difference (minutes):", diffMin);
-        console.log("⏰ Difference (hours):", diffHr);
+       // console.log("📅 Expiry raw string:", expStr);
+       // console.log("🕓 Parsed expDate (local):", expDate.toString());
+       // console.log("🕐 Current time:", now.toString());
+       // console.log("⏳ Difference (ms):", diffMs);
+       // console.log("⏱ Difference (minutes):", diffMin);
+        // console.log("⏰ Difference (hours):", diffHr);
 
         if (isNaN(expDate)) {
             console.warn("Invalid expiry date:", expStr);
@@ -107,7 +107,7 @@ function setDefaults() {
             const mins = absMin % 60;
 
             // 🧭 Debug each update
-            console.log("Now:", now.toString(), "DiffMs:", diffMs);
+           // console.log("Now:", now.toString(), "DiffMs:", diffMs);
 
             if (diffMs > 0) {
                 // ✅ Still valid
@@ -448,3 +448,4 @@ seedFromCount();
 renderPatients();
 attachHandlers();
 recalcOnce();
+
