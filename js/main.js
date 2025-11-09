@@ -1,6 +1,30 @@
 // ---------- Main App Bootstrap ----------
 
-const qs = new URLSearchParams(location.search);
+
+
+
+// ---------- Main App Bootstrap ----------
+
+// Wait for decryption / query initialization to complete
+(async () => {
+    await window.__initQsPromise;
+
+    // 1️⃣ Access global decrypted or fallback query params
+    const qs = window.__decryptedParams || new URLSearchParams(location.search);
+
+    // 2️⃣ Optional debugging (safe to remove in production)
+  
+
+
+
+    // 4️⃣ Continue your normal boot sequence
+    populateIsotopes();
+    setDefaults();
+    seedFromCount();
+    renderPatients();
+    attachHandlers();
+    recalcOnce();
+})();
 
 function populateIsotopes() {
     const isotope = el("isotope");
@@ -36,116 +60,79 @@ function setDefaults() {
 
 
     // --- Expiry Handling ---
-    if (qs.has("exp")) {
-        let expStr = qs.get("exp");
-        if (expStr) expStr = decodeURIComponent(expStr).trim();
-        expStr = expStr.replace("%3A", ":").replace(" ", "T");
+   // --- Expiry Handling ---
+if (qs.has("exp")) {
+    let expStr = decodeURIComponent(qs.get("exp") || "").trim();
+    expStr = expStr.replace("%3A", ":").replace(" ", "T");
 
-        let expDate;
+    let expDate;
+    const match = expStr.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})$/);
+    if (match) {
+        const [_, y, mo, d, h, mi] = match.map(Number);
+        expDate = new Date(y, mo - 1, d, h, mi);
+    } else {
+        expDate = new Date(expStr);
+    }
 
-        // Force local manual parse if format is YYYY-MM-DDTHH:mm
-        const match = expStr.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})$/);
-        if (match) {
-            const [_, y, mo, d, h, mi] = match.map(Number);
-            expDate = new Date(y, mo - 1, d, h, mi, 0, 0);
-        } else {
-            expDate = new Date(expStr);
-        }
+    if (isNaN(expDate)) {
+        el("expLabel").textContent = "Invalid expiry";
+        el("remainingLabel").textContent = "—";
+        return;
+    }
 
-        // 🧭 DEBUG OUTPUT
+    // Display expiry nicely
+    const pad = n => String(n).padStart(2, "0");
+    el("expLabel").textContent =
+        `${pad(expDate.getDate())}/${pad(expDate.getMonth() + 1)}/${expDate.getFullYear()} ` +
+        `${pad(expDate.getHours())}:${pad(expDate.getMinutes())}`;
+
+    const overlay = el("expiredOverlay");
+    const wrap = document.querySelector(".wrap");
+
+    // Main updater
+    function updateRemaining() {
         const now = new Date();
         const diffMs = expDate - now;
         const diffMin = Math.floor(diffMs / 60000);
-        const diffHr = (diffMin / 60).toFixed(2);
-       // console.log("📅 Expiry raw string:", expStr);
-       // console.log("🕓 Parsed expDate (local):", expDate.toString());
-       // console.log("🕐 Current time:", now.toString());
-       // console.log("⏳ Difference (ms):", diffMs);
-       // console.log("⏱ Difference (minutes):", diffMin);
-        // console.log("⏰ Difference (hours):", diffHr);
 
-        if (isNaN(expDate)) {
-            console.warn("Invalid expiry date:", expStr);
-            el("expLabel").textContent = "Invalid expiry";
-            el("remainingLabel").textContent = "—";
-            return;
-        }
-
-
-
-
-        const pad = n => String(n).padStart(2, "0");
-        el("expLabel").textContent =
-            `${pad(expDate.getDate())}/${pad(expDate.getMonth() + 1)}/${expDate.getFullYear()} ` +
-            `${pad(expDate.getHours())}:${pad(expDate.getMinutes())}`;
-
-        const overlay = document.getElementById("expiredOverlay");
-
-        function showExpiredOverlay(expDate) {
-            document.querySelector('.wrap').style.display = 'none';
-            overlay.style.display = 'flex';
-
-            const now = new Date();
-            const diffMin = Math.floor((now - expDate) / 60000);
+        if (diffMs > 0) {
+            // ✅ Not expired — keep app visible and update countdown
             const absMin = Math.abs(diffMin);
             const hours = Math.floor(absMin / 60);
             const mins = absMin % 60;
+            el("remainingLabel").textContent = `${hours}h ${mins}m remaining`;
+            el("remainingLabel").style.color = "var(--ok)";
+            wrap.style.display = "block";
+            overlay.style.display = "none";
+        } else {
+            // ❌ Expired — show overlay only once
+            clearInterval(expiryTimer);
+            wrap.style.display = "none";
+            overlay.style.display = "flex";
+            overlay.querySelector("h1").textContent = "⚠️ This batch has expired";
 
-            const timeInfo = document.createElement("p");
-            timeInfo.style.color = "var(--muted)";
-            timeInfo.style.fontSize = "1rem";
-            timeInfo.textContent = `Expired ${hours}h ${mins}m ago (${expDate.toLocaleString()})`;
-            overlay.appendChild(timeInfo);
-        }
-
-        function updateRemaining() {
-            const now = new Date();
-            const diffMs = expDate - now;
-            const diffMin = Math.floor(diffMs / 60000);
-            const absMin = Math.abs(diffMin);
-            const hours = Math.floor(absMin / 60);
-            const mins = absMin % 60;
-
-            // 🧭 Debug each update
-           // console.log("Now:", now.toString(), "DiffMs:", diffMs);
-
-            if (diffMs > 0) {
-                // ✅ Still valid
-                el("remainingLabel").textContent = `${hours}h ${mins}m remaining`;
-                el("remainingLabel").style.color = "var(--ok)";
-                document.querySelector('.wrap').style.display = 'block';
-                document.getElementById('expiredOverlay').style.display = 'none';
-            } else {
-                // ❌ Expired
-                document.querySelector('.wrap').style.display = 'none';
-                const overlay = document.getElementById('expiredOverlay');
-                overlay.style.display = 'flex';
-                overlay.querySelector("h1").textContent = "⚠️ This batch has expired";
-                clearInterval(expiryTimer);
+            // Add time info text only once
+            if (!overlay.querySelector(".expired-timeinfo")) {
+                const absMin = Math.abs(diffMin);
+                const hours = Math.floor(absMin / 60);
+                const mins = absMin % 60;
+                const info = document.createElement("p");
+                info.className = "expired-timeinfo";
+                info.style.color = "var(--muted)";
+                info.style.fontSize = "1rem";
+                info.textContent = `Expired ${hours}h ${mins}m ago (${expDate.toLocaleString()})`;
+                overlay.appendChild(info);
             }
+             // 🧩 Optional: Clear encrypted link only after expiry
+                history.replaceState({}, "", location.pathname);
         }
-
-        updateRemaining();
-        const expiryTimer = setInterval(updateRemaining, 60000);
     }
-    // Helper to show overlay
-    function showExpiredOverlay(expDate) {
-        document.querySelector('.wrap').style.display = 'none';
-        const overlay = document.getElementById('expiredOverlay');
-        overlay.style.display = 'flex';
+    const expiryTimer = setInterval(updateRemaining, 60000);
+    updateRemaining();
 
-        const now = new Date();
-        const diffMin = Math.floor((now - expDate) / 60000);
-        const absMin = Math.abs(diffMin);
-        const hours = Math.floor(absMin / 60);
-        const mins = absMin % 60;
+}
 
-        const timeInfo = document.createElement("p");
-        timeInfo.style.color = "var(--muted)";
-        timeInfo.style.fontSize = "1rem";
-        timeInfo.textContent = `Expired ${hours}h ${mins}m ago (${expDate.toLocaleString()})`;
-        overlay.appendChild(timeInfo);
-    }
+
 
 
     // Activity
@@ -181,6 +168,7 @@ function attachHandlers() {
     const patientsBody = el("patientsBody");
     const shareBtn = el("shareLink");
 
+    // --- Isotope & core inputs ---
     isotope.addEventListener("change", () => {
         if (isotope.value !== "__custom__")
             halfLife.value = HALF_LIVES_MIN[isotope.value];
@@ -192,6 +180,7 @@ function attachHandlers() {
     );
     recalcBtn.addEventListener("click", recalcOnce);
 
+    // --- Interval change ---
     intervalMinEl.addEventListener("input", () => {
         if (!patients.length) return;
         respaceRespectingLocks();
@@ -199,19 +188,27 @@ function attachHandlers() {
         recalcOnce();
     });
 
+    // --- Add patient ---
     addPatientBtn.addEventListener("click", () => {
         const defaultDose = parseFloat(targetDose.value) || 0;
-        patients.push({ timeHHMM: hhmmFromDate(planStartDate()), dose: defaultDose, locked: false, lockedMl: "" });
+        patients.push({
+            timeHHMM: hhmmFromDate(planStartDate()),
+            dose: defaultDose,
+            locked: false,
+            lockedMl: ""
+        });
         respaceRespectingLocks();
         renderPatients();
         recalcOnce();
     });
 
+    // --- Seed from count ---
     seedPatientsBtn.addEventListener("click", () => {
         seedFromCount();
         recalcOnce();
     });
 
+    // --- Lock/unlock patient row ---
     patientsBody.addEventListener("click", (e) => {
         const btn = e.target.closest('button[data-action="toggle-lock"]');
         if (!btn) return;
@@ -231,25 +228,65 @@ function attachHandlers() {
         recalcOnce();
     });
 
+    // ✅ NEW: Plan start change reflows and recalculates
+    el("planStart").addEventListener("input", () => {
+        respaceRespectingLocks();
+        renderPatients();
+        recalcOnce();
+    });
+
+    // ✅ NEW: Per-patient live dose/time edits
+patientsBody.addEventListener("input", (e) => {
+    const tr = e.target.closest("tr");
+    if (!tr) return;
+
+    const idx = parseInt(tr.dataset.idx, 10);
+    if (isNaN(idx)) return;
+
+    const p = patients[idx];
+    if (!p) return;
+
+    if (e.target.classList.contains("timeInput")) {
+        p.timeHHMM = e.target.value;
+    } else if (e.target.classList.contains("doseInput")) {
+        p.dose = parseFloat(e.target.value) || 0;
+    }
+
+    // Immediately refresh that patient’s volume
+    recalcOnce();
+});
+
+
+
+    // --- Share secure link ---
     shareBtn.addEventListener("click", async () => {
         const { iso, t12, a0, un, cal } = currentParams();
-        const params = new URLSearchParams();
-        params.set("iso", iso);
-        if (isFinite(a0)) params.set("a0", String(a0));
-        params.set("unit", un);
-        if (cal) params.set("cal", toLocalISOWithOffset(cal));
-        const url = `${location.origin}${location.pathname}?${params.toString()}`;
+        const params = {
+            iso, t12, a0, un,
+            cal, exp: qs.get("exp"),
+            cust: qs.get("cust"),
+            doses: qs.get("doses"),
+            vol: qs.get("vol"),
+            batch: qs.get("batch")
+        };
+
+        const encrypted = await encryptData(params);
+        const url = `${location.origin}${location.pathname}#enc=${encodeURIComponent(encrypted)}`;
+
         try {
             await navigator.clipboard.writeText(url);
             shareBtn.textContent = "Link Copied ✓";
-            setTimeout(() => (shareBtn.textContent = "Copy Shareable Link"), 1400);
+            setTimeout(() => (shareBtn.textContent = "Copy Secure Link"), 1400);
         } catch {
-            prompt("Copy this link:", url);
+            prompt("Copy this secure link:", url);
         }
     });
 
+    // --- Continuous refresh ---
     setInterval(recalcOnce, 1000);
 }
+
+
 
 // Simple recalc that calls core logic (already in utils)
 function recalcOnce() {
@@ -299,7 +336,7 @@ function recalcOnce() {
         : `${fmt(aAlt, 2)} MBq`;
 
     // ---- NEW: Concentration ----
-    let vol = parseFloat(qs.get("vol"));
+    let vol = parseFloat(el("volLabel").textContent);
     let concMBqperML = NaN;
     let concMCiperML = NaN;
     if (isFinite(vol) && vol > 0) {
@@ -328,30 +365,46 @@ function recalcOnce() {
 
     if (isFinite(desiredDose) && desiredDose > 0 && isFinite(vol) && vol > 0) {
 
-        // convert desired dose to MBq always internal reference
-        let doseMBq = (doseUnit.value === "mCi")
-            ? desiredDose * MBQ_PER_MCI
-            : desiredDose;
+    // convert desired dose to MBq always internal reference
+    let doseMBq = (doseUnit.value === "mCi")
+        ? desiredDose * MBQ_PER_MCI
+        : desiredDose;
 
-        // concentration always MBq/mL internal
-        if (isFinite(concMBqperML) && concMBqperML > 0) {
-            const mlNeeded = doseMBq / concMBqperML; // mL required NOW
-            requiredVolume.textContent = `${fmt(mlNeeded, 1)} mL`;
-            requiredVolumeNote.textContent = `Based on ${fmt(concMBqperML, 1)} MBq/mL`;
+    if (isFinite(concMBqperML) && concMBqperML > 0) {
+        const mlNeeded = doseMBq / concMBqperML; // mL required NOW
+        const overdraw = mlNeeded > vol; // compare with total available volume
+
+        if (overdraw) {
+            requiredVolume.textContent = `${fmt(mlNeeded, 1)} mL ⚠️`;
+            requiredVolume.style.color = "var(--err)";
+            requiredVolumeNote.textContent = `Requested volume (${fmt(mlNeeded, 1)} mL) exceeds total available volume (${fmt(vol, 1)} mL).`;
+            requiredVolumeNote.style.color = "var(--err)";
         } else {
-            requiredVolume.textContent = "—";
-            requiredVolumeNote.textContent = "Set volume (vol) to enable concentration.";
+            requiredVolume.textContent = `${fmt(mlNeeded, 1)} mL`;
+            requiredVolume.style.color = "var(--fg)";
+            requiredVolumeNote.textContent = `Based on ${fmt(concMBqperML, 1)} MBq/mL concentration.`;
+            requiredVolumeNote.style.color = "var(--muted)";
         }
 
     } else {
         requiredVolume.textContent = "—";
-        requiredVolumeNote.textContent = "Enter desired dose to calculate withdrawal volume.";
+        requiredVolumeNote.textContent = "Set volume (vol) to enable concentration.";
+        requiredVolume.style.color = "var(--muted)";
+        requiredVolumeNote.style.color = "var(--muted)";
     }
+
+} else {
+    requiredVolume.textContent = "—";
+    requiredVolumeNote.textContent = "Enter desired dose to calculate withdrawal volume.";
+    requiredVolume.style.color = "var(--muted)";
+    requiredVolumeNote.style.color = "var(--muted)";
+}
+
 
 
     // --- Patient rows live calc ---
     (() => {
-        const volURL = parseFloat(qs.get("vol"));
+        const volURL = parseFloat(el("volLabel").textContent);
         const canCalc = isFinite(volURL) && volURL > 0;
 
 
@@ -362,37 +415,48 @@ function recalcOnce() {
         const calLocal = parseLocalDatetime(calTime.value);
 
         patients.forEach((p, i) => {
-            const cell = document.getElementById(`volCell-${i}`);
-            if (!cell) return;
+    const cell = document.getElementById(`volCell-${i}`);
+    if (!cell) return;
 
-            if (patients[i]?.locked) {
-                freezeRowIfLocked(i);
-                return;
-            }
-            if (!canCalc) {
-                cell.textContent = "—";
-                return;
-            }
+    if (patients[i]?.locked) {
+        freezeRowIfLocked(i);
+        return;
+    }
 
-            // activity at the *patient injection time*
-            const injDate = dateWithHHMM(calLocal, p.timeHHMM);
-            const dtMinPatient = minutesBetween(calLocal, injDate); // signed
-            const aAtInj_MBq = decay(a0_MBq, dtMinPatient, t12);    // MBq in vial at inj time
+    if (!canCalc) {
+        cell.textContent = "—";
+        cell.style.color = "var(--muted)";
+        return;
+    }
 
-            const concAtInj_MBq_per_mL = aAtInj_MBq / volURL;       // MBq/mL at inj time
+    const injDate = dateWithHHMM(calLocal, p.timeHHMM);
+    const dtMinPatient = minutesBetween(calLocal, injDate); // signed
+    const aAtInj_MBq = decay(a0_MBq, dtMinPatient, t12);    // MBq in vial at inj time
 
-            // convert patient’s entered dose to MBq using the per-patient dose unit selector
-            const doseEntered = parseFloat(p.dose);
-            if (!isFinite(doseEntered) || doseEntered <= 0 || !isFinite(concAtInj_MBq_per_mL) || concAtInj_MBq_per_mL <= 0) {
-                cell.textContent = "—";
-                return;
-            }
+    const concAtInj_MBq_per_mL = aAtInj_MBq / volURL;       // MBq/mL at inj time
 
-            const doseMBq = (doseUnit.value === "mCi") ? doseEntered * MBQ_PER_MCI : doseEntered;
-            const mlNeeded = doseMBq / concAtInj_MBq_per_mL;
+    const doseEntered = parseFloat(p.dose);
+    if (!isFinite(doseEntered) || doseEntered <= 0 || !isFinite(concAtInj_MBq_per_mL) || concAtInj_MBq_per_mL <= 0) {
+        cell.textContent = "—";
+        cell.style.color = "var(--muted)";
+        return;
+    }
 
-            cell.textContent = fmt(mlNeeded, 1) + " mL";
-        });
+    const doseMBq = (doseUnit.value === "mCi") ? doseEntered * MBQ_PER_MCI : doseEntered;
+    const mlNeeded = doseMBq / concAtInj_MBq_per_mL;
+
+    // ⚠️ New logic: compare with total available volume
+    if (mlNeeded > volURL) {
+        cell.textContent = `${fmt(mlNeeded, 1)} mL ⚠️`;
+        cell.style.color = "var(--err)";
+        cell.title = `Required volume (${fmt(mlNeeded, 1)} mL) exceeds total available volume (${fmt(volURL, 1)} mL).`;
+    } else {
+        cell.textContent = `${fmt(mlNeeded, 1)} mL`;
+        cell.style.color = "var(--fg)";
+        cell.title = "";
+    }
+});
+
         // ensure locked rows keep frozen values
         patients.forEach((_, i) => freezeRowIfLocked(i));
 
@@ -400,7 +464,8 @@ function recalcOnce() {
 
     // --- Total volume / Remaining summary ---
     (() => {
-        const volURL = parseFloat(qs.get("vol"));
+        const volURL = parseFloat(el("volLabel").textContent);
+
         if (!patients.length || !isFinite(volURL) || volURL <= 0) {
             el("totalUsedVol").textContent = "Total Used: —";
             el("remainingVol").textContent = "Remaining: —";
@@ -440,12 +505,4 @@ function recalcOnce() {
 
     classifyBox(isPre);
 }
-
-// Boot sequence
-populateIsotopes();
-setDefaults();
-seedFromCount();
-renderPatients();
-attachHandlers();
-recalcOnce();
 

@@ -44,35 +44,42 @@ function renderPatients() {
     perPatientDoseUnit.textContent = doseUnit.value;
 
     patientsBody.innerHTML = "";
+
     patients.forEach((p, i) => {
         const locked = !!p.locked;
         const tr = document.createElement("tr");
+        tr.dataset.idx = i;
+
         tr.innerHTML = `
-          <td style="white-space:nowrap;">
-            ${i + 1}
-            <button class="btn secondary" data-action="toggle-lock" data-idx="${i}" style="margin-left:8px;padding:4px 8px;">
-              ${locked ? "🔒" : "🔓"}
-            </button>
-          </td>
-          <td>
-            <input type="time" value="${p.timeHHMM}" data-idx="${i}" data-field="time" ${locked ? "disabled" : ""}/>
-          </td>
-          <td>
-            <input type="number" min="0" step="0.001"
-                   value="${isFinite(p.dose) ? p.dose : ""}"
-                   data-idx="${i}" data-field="dose" style="max-width:140px;" ${locked ? "disabled" : ""}/>
-            <span class="muted">${doseUnit.value}</span>
-          </td>
-          <td>
-            <span id="volCell-${i}">—</span>
-            ${locked ? `<span class="chip" style="margin-left:8px;">Locked</span>` : ""}
-          </td>`;
+            <td style="white-space:nowrap;text-align:center;">
+                ${i + 1}
+                <button class="btn secondary" data-action="toggle-lock" data-idx="${i}" 
+                    style="margin-left:8px;padding:4px 8px;">${locked ? "🔒" : "🔓"}</button>
+            </td>
+            <td>
+                <input type="time" class="timeInput" 
+                       value="${p.timeHHMM || ''}" 
+                       data-idx="${i}" ${locked ? "disabled" : ""} />
+            </td>
+            <td>
+                <input type="number" min="0" step="0.001" 
+                       class="doseInput"
+                       value="${isFinite(p.dose) ? p.dose : ''}"
+                       data-idx="${i}" ${locked ? "disabled" : ""} 
+                       style="max-width:100px;text-align:right;" />
+                <span class="muted">${doseUnit.value}</span>
+            </td>
+            <td id="volCell-${i}" style="text-align:left;">—</td>
+        `;
+
         patientsBody.appendChild(tr);
     });
 }
 
+
+
 function seedFromCount() {
-    const qs = new URLSearchParams(location.search);
+   // const qs = new URLSearchParams(location.search);
     const countFromUrl = parseInt(qs.get("doses"), 10);
     const n = Number.isInteger(countFromUrl) && countFromUrl > 0 ? countFromUrl : 1;
     const defaultDose = parseFloat(el("targetDose").value) || 0;

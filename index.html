@@ -7,6 +7,8 @@
     <meta name="color-scheme" content="light dark" />
     <!-- Link to your external stylesheet -->
     <link rel="stylesheet" href="css/styles.css" />
+    <link rel="icon" type="image/png" href="images/ORYX-LOGO-FINAL-CUT-ai.png">
+
 </head>
 <body>
     <div id="expiredOverlay" style="
@@ -25,7 +27,7 @@
   padding:20px;
 ">
         <a href="https://www.oryxisotopes.com" target="_blank" rel="noopener" class="logo-link">
-            <img src="ORYX-LOGO-FINAL-CUT-ai.png"
+            <img src="images/ORYX-LOGO-FINAL-CUT-ai.png"
                  alt="Oryx Isotopes Logo"
                  class="logo fade-in" />
         </a>
@@ -39,7 +41,7 @@
     <div class="wrap">
         <header style="text-align:center;">
             <a href="https://www.oryxisotopes.com" target="_blank" rel="noopener" class="logo-link">
-                <img src="ORYX-LOGO-FINAL-CUT-ai.png"
+                <img src="images/ORYX LOGO FINAL CUT.png"
                      alt="Oryx Isotopes Logo"
                      class="logo fade-in" />
             </a>
@@ -267,11 +269,23 @@
         </div>
 
     </div>
+    <!-- Load configuration (encryption key) -->
+    <!-- Load configuration (encryption key) -->
+    <script src="config.js" onerror="console.warn('config.js not found; using placeholder'); window.ENCRYPTION_KEY_B64='PLACEHOLDER_KEY';"></script>
 
+
+    <!-- Then load crypto -->
+    <script src="js/crypto.js"></script>
+
+    <!-- Then supporting logic -->
+    <script src="js/params-bootstrap.js"></script>
     <script src="js/data.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/patients.js"></script>
+
+    <!-- Finally, main app -->
     <script src="js/main.js"></script>
+
 </body>
 </html>
