@@ -137,17 +137,49 @@
             }
         }
 
+        .logo-link {
+            display: inline-block;
+            text-decoration: none;
+        }
+
         .logo {
             width: clamp(140px, 30vw, 260px);
             height: auto;
             margin-bottom: 12px;
+            opacity: 0;
+            transform: scale(0.98);
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.25));
-            transition: 0.3s transform ease;
+            transition: opacity 1.5s ease, transform 1.5s ease, filter 0.3s ease;
         }
 
-            .logo:hover {
-                transform: scale(1.03);
+        .fade-in {
+            animation: logoFadeIn 1.6s ease forwards;
+        }
+
+        @keyframes logoFadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+                filter: blur(3px);
             }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+                filter: drop-shadow(0 3px 5px rgba(0,0,0,0.3));
+            }
+        }
+
+        .logo:hover {
+            transform: scale(1.05);
+            filter: drop-shadow(0 4px 6px rgba(0,0,0,0.35));
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .logo {
+                filter: drop-shadow(0 2px 4px rgba(255,255,255,0.1)) drop-shadow(0 0 6px rgba(255,255,255,0.05));
+            }
+        }
 
 
         /* layout utilities */
@@ -283,14 +315,18 @@
 <body>
     <div class="wrap">
         <header style="text-align:center;">
-            <a href="https://www.oryxisotopes.com" target="_blank" rel="noopener" class="logo-link">
+            <a href="https://oryxisotopes.com" target="_blank" rel="noopener" class="logo-link">
                 <img src="ORYX-LOGO-FINAL-CUT-ai.png"
                      alt="Oryx Isotopes Logo"
-                     class="logo" />
+                     class="logo fade-in" />
             </a>
             <h1>Oryx Isotopes Radiopharmaceuticals Activity Decay Calculator</h1>
-            <p class="lead">Enter isotope, calibration time, and reference activity. The calculator updates continuously to show the current activity.</p>
+            <p class="lead">
+                Enter isotope, calibration time, and reference activity.<br />
+                The calculator updates continuously to show the current activity.
+            </p>
         </header>
+
 
         <div class="grid">
 
@@ -341,7 +377,7 @@
                 <div class="row">
                     <div class="field">
                         <label for="activity0">Activity at Calibration (<span id="unitLabel">MBq</span>)</label>
-                        <input id="activity0" type="number" min="0" step="0.001" placeholder="e.g., 12000" inputmode="decimal" readonly="true"/>
+                        <input id="activity0" type="number" min="0" step="0.001" placeholder="e.g., 12000" inputmode="decimal" readonly="readonly" />
                     </div>
                     <div class="field">
                         <label for="unit">Unit</label>
@@ -372,10 +408,10 @@
                     </div>
                 </div>
 
-              <!--  <div class="notice muted">
-                    URL parameters supported: <span class="mono">iso</span>, <span class="mono">a0</span>, <span class="mono">unit</span>, <span class="mono">cal</span> (e.g., <span class="mono">?iso=F-18&a0=12000&unit=MBq&cal=2025-11-08T09:45</span>).
-                    Perfect for QR codes.
-                </div>  --> 
+                <!--  <div class="notice muted">
+                  URL parameters supported: <span class="mono">iso</span>, <span class="mono">a0</span>, <span class="mono">unit</span>, <span class="mono">cal</span> (e.g., <span class="mono">?iso=F-18&a0=12000&unit=MBq&cal=2025-11-08T09:45</span>).
+                  Perfect for QR codes.
+              </div>  -->
             </section>
 
 
@@ -420,7 +456,7 @@
                 </details>
             </section>
 
-        
+
 
             <!-- Plan -->
             <section class="card info" id="patientPlan">
@@ -468,7 +504,7 @@
                             <button class="btn" id="seedPatients">Seed from count</button>
                             <button class="btn secondary" id="addPatient">Add patient</button>
                         </div>
-                        
+
                     </div>
                 </div>
 
@@ -507,7 +543,7 @@
 
         </div>
 
-  </div>
+    </div>
 
 
 
