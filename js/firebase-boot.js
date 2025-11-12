@@ -10,7 +10,7 @@
         apiKey: "AIzaSyCwd0IUK_guPB7QygfkCHlcPuKP3wkfgxM",
     authDomain: "oryxcustomeractivitytracker.firebaseapp.com",
     projectId: "oryxcustomeractivitytracker",
-    storageBucket: "oryxcustomeractivitytracker.firebasestorage.app",
+    storageBucket: "oryxcustomeractivitytracker.appspot.com",
     messagingSenderId: "50216766361",
     appId: "1:50216766361:web:f305502c52e0f76e4e6108"
         };
@@ -78,4 +78,5 @@
         };
 
     window.__fsReady = true;
+
 
