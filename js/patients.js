@@ -1,13 +1,7 @@
 // ---------- Patient Scheduling ----------
 
-let patients = [];
+window.patients = window.patients || [];
 
-function planStartDate() {
-    const cal = parseLocalDatetime(el("calTime").value);
-    const ps = el("planStart").value;
-    if (!ps) return cal;
-    return dateWithHHMM(cal, ps);
-}
 
 function freezeRowIfLocked(i) {
     const p = patients[i];
@@ -38,56 +32,193 @@ function respaceRespectingLocks() {
 }
 
 function renderPatients() {
-    const patientsBody = el("patientsBody");
-    const doseUnit = el("doseUnit");
-    const perPatientDoseUnit = el("perPatientDoseUnit");
-    perPatientDoseUnit.textContent = doseUnit.value;
+    const tbody = el("patientsBody");
+    tbody.innerHTML = "";
 
-    patientsBody.innerHTML = "";
+    if (!window.patients || window.patients.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--muted);">
+            No patients added.
+        </td></tr>`;
+        return;
+    }
 
-    patients.forEach((p, i) => {
-        const locked = !!p.locked;
+    window.patients.forEach((p, i) => {
         const tr = document.createElement("tr");
         tr.dataset.idx = i;
+        if (p.locked) tr.style.background = "rgba(180,180,180,0.15)";
 
         tr.innerHTML = `
-            <td style="white-space:nowrap;text-align:center;">
-                ${i + 1}
-                <button class="btn secondary" data-action="toggle-lock" data-idx="${i}" 
-                    style="margin-left:8px;padding:4px 8px;">${locked ? "🔒" : "🔓"}</button>
+            <td style="text-align:center;">
+                <button data-idx="${i}" data-action="toggle-lock" class="btn small">
+                    ${p.locked ? "Unlock" : "Lock"}
+                </button>
             </td>
-            <td>
-                <input type="time" class="timeInput" 
-                       value="${p.timeHHMM || ''}" 
-                       data-idx="${i}" ${locked ? "disabled" : ""} />
+            <td style="text-align:left;">
+                <input type="time" class="timeInput" value="${p.timeHHMM || ""}" ${p.locked ? "disabled" : ""} />
             </td>
-            <td>
-                <input type="number" min="0" step="0.001" 
-                       class="doseInput"
-                       value="${isFinite(p.dose) ? p.dose : ''}"
-                       data-idx="${i}" ${locked ? "disabled" : ""} 
-                       style="max-width:100px;text-align:right;" />
-                <span class="muted">${doseUnit.value}</span>
+            <td style="text-align:left;">
+                <input type="number" class="doseInput" step="0.01" value="${p.dose || 0}" ${p.locked ? "disabled" : ""} />
             </td>
-            <td id="volCell-${i}" style="text-align:left;">—</td>
+            <td id="volCell-${i}" style="text-align:left;">${p.volumeRequired || "—"}</td>
         `;
 
-        patientsBody.appendChild(tr);
+        tbody.appendChild(tr);
     });
 }
 
+// --- Add new patient row dynamically ---
+function addNewPatient() {
+    try {
+        const defaultDose = parseFloat(el("targetDose").value) || 0;
+        const interval = parseFloat(el("intervalMin").value) || 0;
+        const start = planStartDate();
+        console.log({ defaultDose, interval, start });
 
+        let lastTime = start;
+        if (patients.length > 0) {
+            const last = patients[patients.length - 1];
+            lastTime = dateWithHHMM(start, last.timeHHMM);
+            lastTime = addMinutes(lastTime, interval);
+        }
+
+        const newPatient = {
+            timeHHMM: hhmmFromDate(lastTime),
+            dose: defaultDose,
+            locked: false,
+            lockedMl: "",
+            volumeRequired: ""
+        };
+        console.log("Adding", newPatient);
+
+        patients.push(newPatient);
+        renderPatients();
+        recalcOnce();
+        // 🔁 Trigger Firestore save
+        if (typeof window.debouncedSave === "function") {
+            window.debouncedSave("patient-added");
+        }
+
+
+    } catch (err) {
+        console.error("addNewPatient failed:", err);
+    }
+}
+
+function addMinutesHHMM(hhmm, addMin) {
+    const [h, m] = (hhmm || "00:00").split(":").map(n => parseInt(n, 10) || 0);
+    const d = new Date(2000, 0, 1, h, m, 0, 0);
+    d.setMinutes(d.getMinutes() + addMin);
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+}
 
 function seedFromCount() {
-   // const qs = new URLSearchParams(location.search);
-    const countFromUrl = parseInt(qs.get("doses"), 10);
-    const n = Number.isInteger(countFromUrl) && countFromUrl > 0 ? countFromUrl : 1;
+    const count = parseInt(el("dosesLabel").textContent) || 0;
+    const interval = parseFloat(el("intervalMin").value) || 0;
+    const start = planStartDate();
     const defaultDose = parseFloat(el("targetDose").value) || 0;
-    const lockedRows = patients.filter(p => p.locked);
-    patients = [...lockedRows];
-    while (patients.length < n) {
-        patients.push({ timeHHMM: hhmmFromDate(planStartDate()), dose: defaultDose, locked: false, lockedMl: "" });
+
+    const existing = Array.isArray(window.patients) ? window.patients : [];
+
+    // 🧠 1️⃣ If all patients are locked → do nothing
+    const allLocked = existing.length > 0 && existing.every(p => p.locked);
+    if (allLocked) {
+        console.log("🔒 All patients locked — skipping reseed.");
+        renderPatients();
+        recalcOnce();
+        return;
     }
-    respaceRespectingLocks();
+
+    // 🧠 2️⃣ Find the last locked time to anchor new times
+    let cursor = new Date(start.getTime());
+    let lastLockedTime = start;
+    for (const p of existing) {
+        if (p.locked) lastLockedTime = dateWithHHMM(start, p.timeHHMM);
+    }
+    cursor = addMinutes(lastLockedTime, interval);
+
+    const newPatients = [];
+
+    // 🧠 3️⃣ Iterate over desired count — keep locked, rebuild unlocked
+    for (let i = 0; i < count; i++) {
+        const prev = existing[i];
+
+        if (prev && prev.locked) {
+            newPatients.push({ ...prev });
+            // move cursor after locked row
+            cursor = addMinutes(dateWithHHMM(start, prev.timeHHMM), interval);
+        } else {
+            const nextTime = hhmmFromDate(cursor);
+            cursor = addMinutes(cursor, interval);
+
+            newPatients.push({
+                timeHHMM: nextTime,
+                dose: defaultDose,
+                locked: false,
+                lockedMl: "",
+                volumeRequired: ""
+            });
+        }
+    }
+
+    // 🧠 4️⃣ Append any extra locked rows beyond count (never delete them)
+    const extraLocked = existing.filter((p, i) => i >= count && p.locked);
+    if (extraLocked.length > 0) {
+        console.log(`🔒 Preserving ${extraLocked.length} locked rows beyond count.`);
+        newPatients.push(...extraLocked);
+    }
+
+    // 🧠 5️⃣ Save and refresh
+    window.patients = newPatients;
     renderPatients();
+    recalcOnce();
 }
+
+
+document.addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-action='toggle-lock']");
+    if (!btn) return;
+
+    const idx = parseInt(btn.dataset.idx, 10);
+    const p = patients[idx];
+    if (!p) return;
+
+    const cell = document.getElementById(`volCell-${idx}`);
+    const tr = btn.closest("tr");
+    const timeInput = tr?.querySelector(".timeInput");
+    const doseInput = tr?.querySelector(".doseInput");
+
+    // Capture latest inputs
+    p.timeHHMM = timeInput?.value || p.timeHHMM;
+    p.dose = parseFloat(doseInput?.value) || p.dose;
+
+    // Toggle lock
+    p.locked = !p.locked;
+    p.lockedMl = p.locked ? (cell?.textContent || "") : "";
+
+    // Update visuals
+    renderPatients();
+    recalcOnce();
+
+    // 🔁 Trigger Firestore save for lock state change
+    if (typeof window.debouncedSave === "function") {
+        window.debouncedSave(p.locked ? "patient-locked" : "patient-unlocked");
+    }
+
+
+});
+
+// ✅ Expose helpers globally for main.js
+window.renderPatients = renderPatients;
+window.addMinutesHHMM = addMinutesHHMM;
+window.respaceRespectingLocks = respaceRespectingLocks;
+window.freezeRowIfLocked = freezeRowIfLocked;
+window.seedFromCount = seedFromCount;
+window.addNewPatient = addNewPatient;
+
+
+// ---------- End of patients.js ----------
+
+
+

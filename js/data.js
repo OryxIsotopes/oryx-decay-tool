@@ -17,3 +17,13 @@
         };
 
 const MBQ_PER_MCI = 37.0;
+
+
+function applyIsotopeHalfLife() {
+    const isoEl = el("isotope");
+    const hlEl = el("halfLife");
+    const iso = isoEl?.value;
+    if (iso && HALF_LIVES_MIN[iso]) {
+        hlEl.value = HALF_LIVES_MIN[iso];
+    }
+}

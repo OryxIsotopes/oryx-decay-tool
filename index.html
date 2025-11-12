@@ -12,11 +12,10 @@
 </head>
 <body>
     <div id="expiredOverlay" style="
-  display:none;
   position:fixed;
   inset:0;
   background:var(--bg);
-  color:var(--err);
+  color:var(--fg);
   font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial;
   z-index:9999;
   display:flex;
@@ -31,12 +30,25 @@
                  alt="Oryx Isotopes Logo"
                  class="logo fade-in" />
         </a>
-        <h1 style="font-size:2rem; color:var(--err);">⚠️ This batch has expired</h1>
+        <h1 style="font-size:2rem;">⏳ Loading batch information…</h1>
         <p style="color:var(--muted); font-size:1.1rem; max-width:480px;">
-            The product is past its expiry time.<br>
-            Please discard it safely or contact the Oryx Isotopes production facility.
+            Please wait while the calculator initializes.
+            For assistance, contact <strong>Mohsen Alnajrani</strong> –
+            <a href="mailto:m.alnajrani@oryxisotopes.com" style="color:inherit;text-decoration:underline;">
+                m.alnajrani@oryxisotopes.com
+            </a>
         </p>
+        <p style="margin-top:1rem; font-size:0.9rem; color:var(--muted); max-width:500px;">
+            ⚠️ Data entered or transmitted through this calculator may be collected and used
+            internally by Oryx Isotopes for quality assurance, performance monitoring,
+            and regulatory documentation purposes only.
+        </p>
+
+        <small style="margin-top:2rem; font-size:0.8rem; color:var(--muted);">
+            © <span id="year"></span> Mohsen Alnajrani – Oryx Isotopes Industrial Co.
+        </small>
     </div>
+
 
     <div class="wrap">
         <header style="text-align:center;">
@@ -101,8 +113,8 @@
 
                 <div class="row">
                     <div class="field">
-                        <label for="activity0">Activity at Calibration (<span id="unitLabel">MBq</span>)</label>
-                        <input id="activity0" type="number" min="0" step="0.001" placeholder="e.g., 12000" inputmode="decimal" readonly="readonly" />
+                        <label for="activity0">Activity at Calibration (<span id="unitLabel">mCi</span>)</label>
+                        <input id="activity0" type="number" min="0" step="0.001" placeholder="e.g., 12000" inputmode="decimal" />
                     </div>
                     <div class="field">
                         <label for="unit">Unit</label>
@@ -118,19 +130,16 @@
                         <label for="calTime">Calibration Date &amp; Time <span class="muted">(local)</span></label>
                         <input id="calTime" type="datetime-local" />
                     </div>
-                    <div class="field">
-                        <label for="nowTime">Current Time <span class="muted">(auto)</span></label>
-                        <input id="nowTime" type="datetime-local" disabled />
-                    </div>
+
                 </div>
 
                 <div class="row">
                     <div class="field">
                         <button class="btn" id="recalc">Recalculate</button>
                     </div>
-                    <div class="field">
-                        <button class="btn secondary" id="shareLink">Copy Shareable Link</button>
-                    </div>
+                    <!-- <div class="field">
+        <button class="btn secondary" id="shareLink">Copy Shareable Link</button>
+    </div>-->
                 </div>
 
                 <!--  <div class="notice muted">
@@ -168,6 +177,10 @@
                         <div class="value" id="decayFactor">—</div>
                         <div class="muted">A = A₀ · e<sup>−λt</sup>, λ = ln(2)/T<sub>½</sub></div>
                     </div>
+                </div>
+                <div class="field">
+                    <label for="nowTime">Current Time <span class="muted">(auto)</span></label>
+                    <input id="nowTime" type="datetime-local" disabled />
                 </div>
 
                 <div class="hr"></div>
@@ -284,8 +297,31 @@
     <script src="js/ui.js"></script>
     <script src="js/patients.js"></script>
 
+ <script type="module" src="js/firebase-boot.js"></script> 
+
+
     <!-- Finally, main app -->
     <script src="js/main.js"></script>
 
-</body>
-</html>
+    <footer style="
+  text-align:center;
+  font-size:0.8rem;
+  color:var(--muted);
+  padding:10px 0;
+  border-top:1px solid var(--muted);
+  margin-top:30px;
+">
+        Developed by <strong>Mohsen Alnajrani</strong> – Oryx Isotopes Industrial Co.<br>
+        Data collected may be used for quality assurance purposes.
+        For inquiries, contact
+        <a href="mailto:m.alnajrani@oryxisotopes.com" style="color:inherit;text-decoration:underline;">
+            m.alnajrani@oryxisotopes.com
+        </a>
+    </footer>
+
+    <script>
+        // auto-update footer year
+        document.getElementById("year").textContent = new Date().getFullYear();
+    </script>
+</body >
+</html >
