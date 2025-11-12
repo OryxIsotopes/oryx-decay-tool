@@ -7,7 +7,7 @@
     } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
 
     const firebaseConfig = {
-        apiKey: "AIzaSyCwd0IUK_guPB7QygfkCHlcPuKP3wkfgxM",
+        apiKey: "AIzaSyAUJ9xwa340hdxU_0x1lv_9kU8U1MpKwjA",
     authDomain: "oryxcustomeractivitytracker.firebaseapp.com",
     projectId: "oryxcustomeractivitytracker",
     storageBucket: "oryxcustomeractivitytracker.appspot.com",
@@ -78,5 +78,6 @@
         };
 
     window.__fsReady = true;
+
 
 
