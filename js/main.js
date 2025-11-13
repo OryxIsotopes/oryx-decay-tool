@@ -712,7 +712,7 @@ function debounce(fn, delay = 1000) {
          activity_now: el("activityNow")?.textContent || "",
          concentration_now: el("concentrationNow")?.textContent || "",
          volume: parseFloat(el("volLabel")?.textContent || 0),
-         doses: parseFloat(el("dosesLabel")?.textContent || 0),
+         doses: el("dosesLabel").textContent || "",
          interval_min: parseFloat(el("intervalMin")?.value || 0),
          plan_start: el("planStart")?.value || "",
          desired_dose: parseFloat(el("targetDose")?.value || 0),
@@ -779,7 +779,8 @@ function debounce(fn, delay = 1000) {
          if (latest.dose_unit) el("doseUnit").value = latest.dose_unit;
          if (latest.plan_start) el("planStart").value = latest.plan_start;
          if (typeof latest.volume === "number") el("volLabel").textContent = latest.volume;
-         if (typeof latest.doses === "number") el("dosesLabel").textContent = latest.doses;
+         if (latest.doses) 
+    el("dosesLabel").textContent = latest.doses;
          if (latest.interval_min) el("intervalMin").value = latest.interval_min;
          // --- Ensure UI labels and expiry restored properly ---
          if (latest.customer) el("custLabel").textContent = latest.customer;
@@ -941,7 +942,9 @@ function debounce(fn, delay = 1000) {
          }
  
      }
- 
+
+
+     
      // --- Save hooks ---
      async function pushFullUpdate(trigger) {
          const data = collectData();
@@ -981,6 +984,13 @@ function debounce(fn, delay = 1000) {
      console.log("📡 Firestore sync ready for", customer, batch);
  })();
  
+function evalDoses(expr) {
+    return expr
+        .split("+")
+        .map(x => Number(x.trim()))
+        .filter(x => !isNaN(x))
+        .reduce((a, b) => a + b, 0);
+}
 
 
 
@@ -992,6 +1002,7 @@ function addMinutesHHMM(hhmm, addMin) {
     const mm = String(d.getMinutes()).padStart(2, "0");
     return `${hh}:${mm}`;
 }
+
 
 
 
