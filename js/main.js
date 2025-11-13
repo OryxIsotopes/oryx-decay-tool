@@ -1,4 +1,13 @@
 // ---------- Main App Bootstrap ----------
+function evalDoses(expr) {
+    if (!expr) return 0;
+
+    return expr
+        .split("+")
+        .map(x => Number(x.trim()))
+        .filter(x => !isNaN(x))
+        .reduce((a, b) => a + b, 0);
+}
 
 // main.js
 
@@ -878,7 +887,9 @@ function debounce(fn, delay = 1000) {
 
          } else {
              // 🧩 If no patient data in Firestore but doses exist → auto seed
-             const doseCount = parseInt(el("dosesLabel").textContent) || 0;
+            const doseExpr = el("dosesLabel").textContent.trim();
+const doseCount = evalDoses(doseExpr);
+
              if (doseCount > 0) {
                  seedFromCount();
                  console.log(`🆕 Auto-seeded ${doseCount} patients`);
@@ -920,7 +931,9 @@ function debounce(fn, delay = 1000) {
          window.patients = [];
          renderPatients();
          // 🧩 NEW: auto-seed if dose count exists
-         const doseCount = parseInt(el("dosesLabel").textContent) || 0;
+         const doseExpr = el("dosesLabel").textContent.trim();
+const doseCount = evalDoses(doseExpr);
+
          if (doseCount > 0) {
              seedFromCount();
              console.log(`🆕 Auto-seeded ${doseCount} patients`);
@@ -995,6 +1008,7 @@ function addMinutesHHMM(hhmm, addMin) {
     const mm = String(d.getMinutes()).padStart(2, "0");
     return `${hh}:${mm}`;
 }
+
 
 
 
