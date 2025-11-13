@@ -113,8 +113,21 @@ function addMinutesHHMM(hhmm, addMin) {
     return `${hh}:${mm}`;
 }
 
+function evalDoses(expr) {
+    if (!expr) return 0;
+
+    return expr
+        .split("+")
+        .map(x => Number(x.trim()))
+        .filter(x => !isNaN(x))
+        .reduce((a, b) => a + b, 0);
+}
+
+
 function seedFromCount() {
-    const count = parseInt(el("dosesLabel").textContent) || 0;
+    const doseExpr = el("dosesLabel").textContent.trim();
+const count = evalDoses(doseExpr);
+
     const interval = parseFloat(el("intervalMin").value) || 0;
     const start = planStartDate();
     const defaultDose = parseFloat(el("targetDose").value) || 0;
@@ -219,6 +232,7 @@ window.addNewPatient = addNewPatient;
 
 
 // ---------- End of patients.js ----------
+
 
 
 
