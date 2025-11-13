@@ -984,13 +984,6 @@ function debounce(fn, delay = 1000) {
      console.log("📡 Firestore sync ready for", customer, batch);
  })();
  
-function evalDoses(expr) {
-    return expr
-        .split("+")
-        .map(x => Number(x.trim()))
-        .filter(x => !isNaN(x))
-        .reduce((a, b) => a + b, 0);
-}
 
 
 
@@ -1002,6 +995,7 @@ function addMinutesHHMM(hhmm, addMin) {
     const mm = String(d.getMinutes()).padStart(2, "0");
     return `${hh}:${mm}`;
 }
+
 
 
 
